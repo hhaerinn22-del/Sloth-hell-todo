@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>나태지옥 탈출 투두</title>
+<meta name="theme-color" content="#070a10">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="나태지옥 탈출 투두 리스트. 일을 미룰수록 돌기둥이 빨라진다.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="나태지옥">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070a10'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23ff6a50' stroke-width='2.4'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ffcf5c'/%3E%3C/svg%3E">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Sloth Hell To-do","short_name":"SlothHell","start_url":".","display":"standalone","orientation":"portrait","background_color":"%2305070b","theme_color":"%23070a10"}'>
+<style>
+  :root{
+    --coral:#ff6a50;
+    --coral-deep:#e0452f;
+    --gold:#ffcf5c;
+    --cyan:#4fe3ff;
+    --ink:#eaf0f7;
+    --panel-line:rgba(255,255,255,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:#04060a;
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","맑은 고딕",system-ui,"Segoe UI",Roboto,sans-serif;
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-font-smoothing:antialiased;
+    touch-action:manipulation;
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+  }
+  /* typing must always work, even if a parent ever sets user-select:none */
+  input,textarea,[contenteditable]{
+    -webkit-user-select:text !important;
+    user-select:text !important;
+    pointer-events:auto !important;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  #app{
+    position:relative;
+    width:100%;
+    height:var(--app-h,100dvh);
+    flex:0 0 auto;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    background:
+      radial-gradient(120% 70% at 50% 0%, #0d1a28 0%, #070b12 55%, #04060a 100%);
+  }
+  @media (min-width:600px) and (min-height:660px){
+    #app{
+      width:auto;height:min(900px,94vh);height:min(900px,94dvh) !important;
+      aspect-ratio:9/16;
+      border-radius:40px;
+      box-shadow:0 40px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.07), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+  }
+
+  /* ---------- lock screen header ---------- */
+  .lockscreen{
+    position:relative;z-index:3;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    padding:calc(10px + env(safe-area-inset-top)) 20px 2px;
+    pointer-events:none;
+  }
+  .clock-wrap{display:flex;flex-direction:column;gap:2px;}
+  .date{
+    font-size:11px;font-weight:500;letter-spacing:.11em;
+    color:rgba(206,222,238,.58);
+    font-variant-numeric:tabular-nums;
+  }
+  .clock{
+    font-size:32px;font-weight:200;line-height:1;letter-spacing:-.01em;
+    color:#f2f7fc;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 2px 18px rgba(140,190,230,.28);
+    display:flex;align-items:baseline;gap:5px;
+  }
+  .clock .sec{font-size:12px;font-weight:400;color:rgba(206,222,238,.42);letter-spacing:.02em;}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 9px;border-radius:999px;
+    font-size:9px;font-weight:700;letter-spacing:.16em;
+    border:1px solid rgba(255,120,90,.32);
+    background:rgba(255,106,80,.10);
+    color:#ffb59f;
+    transition:all .5s ease;
+    white-space:nowrap;
+    margin-top:3px;
+  }
+  .pill i{width:5px;height:5px;border-radius:50%;background:var(--coral);box-shadow:0 0 8px var(--coral);animation:blip 1.6s ease-in-out infinite;font-style:normal;}
+  .heaven .pill{border-color:rgba(255,207,92,.45);background:rgba(255,207,92,.14);color:#ffdf9b;}
+  .heaven .pill i{background:var(--gold);box-shadow:0 0 8px var(--gold);animation-duration:2.6s;}
+  @keyframes blip{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+
+  /* ---------- canvas stage ---------- */
+  .stage{
+    position:relative;z-index:1;
+    flex:1 1 auto;min-height:0;
+    margin-top:-2px;
+    overflow:hidden;
+  }
+  /* the canvas keeps the exact aspect of its own pixel buffer (no stretching):
+     one art pixel is always an integer number of device pixels */
+  #scene{
+    position:absolute;left:0;top:0;
+    display:block;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    touch-action:manipulation;
+  }
+
+  /* ---------- frosted panel ---------- */
+  .panel{
+    position:relative;z-index:4;
+    flex:0 0 auto;
+    display:flex;flex-direction:column;gap:8px;
+    padding:13px 14px calc(9px + env(safe-area-inset-bottom));
+    max-height:48%;
+    border-radius:26px 26px 0 0;
+    border-top:1px solid rgba(255,255,255,.16);
+    background:
+      linear-gradient(180deg, rgba(30,40,54,.66) 0%, rgba(13,18,26,.88) 55%, rgba(9,12,18,.94) 100%);
+    -webkit-backdrop-filter:blur(24px) saturate(150%);
+    backdrop-filter:blur(24px) saturate(150%);
+    box-shadow:0 -22px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.13);
+    transition:background .8s ease, box-shadow .8s ease;
+  }
+  .panel::before{
+    content:"";position:absolute;left:0;right:0;top:0;height:60%;
+    border-radius:26px 26px 0 0;
+    background:radial-gradient(120% 100% at 50% 0%, rgba(120,180,230,.10), rgba(120,180,230,0) 70%);
+    pointer-events:none;
+  }
+  .heaven .panel{
+    background:linear-gradient(180deg, rgba(102,78,38,.70) 0%, rgba(58,43,19,.90) 55%, rgba(38,28,13,.95) 100%);
+    box-shadow:0 -22px 50px rgba(60,40,10,.45), inset 0 1px 0 rgba(255,236,190,.30);
+  }
+
+  .status{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;position:relative;}
+  .status-main{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .title{
+    display:flex;align-items:center;gap:7px;
+    font-size:12.5px;font-weight:700;letter-spacing:.01em;color:#e7eef7;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .title .flame{
+    width:7px;height:7px;border-radius:2px;flex:0 0 auto;
+    background:var(--coral);
+    box-shadow:0 0 9px rgba(255,106,80,.9);
+    animation:flick 1.4s ease-in-out infinite;
+  }
+  @keyframes flick{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(8deg)}}
+  .heaven .title{color:#ffe6ad;}
+  .heaven .title .flame{background:var(--gold);box-shadow:0 0 10px rgba(255,207,92,.9);animation-duration:2.4s;}
+  .sub{
+    font-size:10.5px;font-weight:500;letter-spacing:.01em;
+    color:rgba(180,198,216,.62);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .heaven .sub{color:rgba(255,226,170,.72);}
+  .pct{
+    display:flex;align-items:baseline;flex:0 0 auto;
+    font-size:28px;font-weight:700;line-height:.85;letter-spacing:-.03em;
+    color:#ffffff;font-variant-numeric:tabular-nums;
+    text-shadow:0 0 22px rgba(255,120,90,.35);
+    transition:color .5s ease, text-shadow .5s ease;
+  }
+  .pct .unit{font-size:13px;font-weight:600;margin-left:2px;opacity:.55;}
+  .heaven .pct{color:var(--gold);text-shadow:0 0 26px rgba(255,207,92,.55);}
+
+  .bar{
+    position:relative;height:8px;border-radius:999px;overflow:hidden;
+    background:rgba(255,255,255,.09);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.55);
+  }
+  .bar-fill{
+    position:absolute;inset:0 auto 0 0;width:0%;border-radius:999px;
+    background:linear-gradient(90deg,#ff9a63 0%, #ff6a50 55%, #e0452f 100%);
+    box-shadow:0 0 14px rgba(255,110,80,.6);
+    transition:width .6s cubic-bezier(.22,1.2,.36,1), background .7s ease, box-shadow .7s ease;
+  }
+  .bar-fill::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.45) 50%,rgba(255,255,255,0) 100%);
+    transform:translateX(-100%);
+    animation:sheen 2.6s linear infinite;
+  }
+  @keyframes sheen{0%{transform:translateX(-100%)}60%,100%{transform:translateX(220%)}}
+  .heaven .bar-fill{background:linear-gradient(90deg,#ffe89b 0%, #ffcf5c 50%, #ffb53d 100%);box-shadow:0 0 16px rgba(255,207,92,.75);}
+
+  .add{display:flex;gap:8px;position:relative;}
+  .add input{
+    flex:1 1 auto;min-width:0;height:44px;
+    padding:0 13px;border-radius:12px;
+    border:1px solid rgba(255,255,255,.13);
+    background:rgba(255,255,255,.055);
+    color:var(--ink);font-family:inherit;
+    /* 16px keeps iOS Safari from zooming the whole page on focus */
+    font-size:16px;line-height:1.2;
+    outline:none;
+    -webkit-user-select:text !important;
+    user-select:text !important;
+    transition:border-color .2s, background .2s, box-shadow .2s;
+  }
+  .add input::placeholder{color:rgba(180,198,216,.42);}
+  .add input:focus{border-color:rgba(255,120,90,.6);background:rgba(255,255,255,.085);box-shadow:0 0 0 3px rgba(255,106,80,.10);}
+  .heaven .add input:focus{border-color:rgba(255,207,92,.6);box-shadow:0 0 0 3px rgba(255,207,92,.12);}
+  .add button{
+    flex:0 0 auto;width:48px;height:44px;
+    border:0;border-radius:12px;cursor:pointer;
+    touch-action:manipulation;
+    -webkit-user-select:none;user-select:none;
+    background:linear-gradient(158deg,#ff8a5f,#ff5a3d);
+    color:#fff;font-size:21px;font-weight:600;line-height:1;
+    box-shadow:0 7px 18px rgba(255,86,58,.34), inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .12s ease, filter .2s;
+  }
+  .add button:active{transform:scale(.93);filter:brightness(1.06);}
+  .heaven .add button{background:linear-gradient(158deg,#ffe08e,#ffbe42);color:#4a3310;}
+
+  .list{
+    list-style:none;margin:0;padding:0;
+    display:flex;flex-direction:column;gap:5px;
+    max-height:204px;
+    overflow-y:auto;overscroll-behavior:contain;
+    flex:1 1 auto;min-height:0;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  }
+  .list::-webkit-scrollbar{width:0;height:0;}
+  .task{
+    display:flex;align-items:center;gap:9px;
+    padding:6px 9px;border-radius:12px;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.055);
+    cursor:pointer;
+    transition:background .22s, border-color .22s, transform .12s, opacity .3s;
+    animation:pop .28s cubic-bezier(.22,1.3,.4,1);
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
+  .task:active{transform:scale(.988);background:rgba(255,255,255,.075);}
+  .task .box{
+    flex:0 0 auto;width:18px;height:18px;border-radius:6px;
+    border:1.5px solid rgba(255,255,255,.26);
+    display:grid;place-items:center;
+    transition:all .22s cubic-bezier(.22,1.3,.4,1);
+    background:rgba(255,255,255,.02);
+  }
+  .task .box svg{width:12px;height:12px;opacity:0;transform:scale(.5);transition:all .22s cubic-bezier(.22,1.3,.4,1);}
+  .task.done .box{
+    border-color:transparent;
+    background:linear-gradient(158deg,#ff8a5f,#ff5a3d);
+    box-shadow:0 0 12px rgba(255,106,80,.45);
+  }
+  .heaven .task.done .box{background:linear-gradient(158deg,#ffe08e,#ffbe42);box-shadow:0 0 12px rgba(255,207,92,.5);}
+  .task.done .box svg{opacity:1;transform:scale(1);}
+  .task .label{
+    flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.3;color:#dde6f1;
+    word-break:break-word;transition:color .25s;
+  }
+  .task.done .label{color:rgba(178,194,212,.42);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.34);text-decoration-thickness:1.5px;}
+  .task .del{
+    flex:0 0 auto;width:24px;height:22px;border:0;border-radius:8px;
+    background:transparent;color:rgba(255,255,255,.30);
+    font-size:15px;line-height:1;cursor:pointer;
+    display:grid;place-items:center;font-family:inherit;
+    transition:color .2s, background .2s, opacity .2s;
+  }
+  .task .del:hover,.task .del:active{color:#ff8f7a;background:rgba(255,106,80,.12);}
+  .empty{
+    padding:16px 4px;text-align:center;font-size:11.5px;line-height:1.6;
+    color:rgba(180,198,216,.45);
+  }
+  .success-glow{
+    position:absolute;inset:0;border-radius:26px 26px 0 0;pointer-events:none;opacity:0;
+    background:radial-gradient(90% 120% at 50% 0%, rgba(255,207,92,.28), rgba(255,207,92,0) 70%);
+    transition:opacity .8s ease;
+  }
+  .heaven .success-glow{opacity:1;animation:successPulse 3.2s ease-in-out infinite;}
+  @keyframes successPulse{0%,100%{opacity:.45}50%{opacity:1}}
+  @media (max-height:700px){
+    .lockscreen{padding-top:calc(6px + env(safe-area-inset-top));}
+    .clock{font-size:26px;}
+    .date{font-size:10px;}
+    .panel{padding:10px 12px calc(6px + env(safe-area-inset-bottom));gap:6px;max-height:52%;}
+    .task{padding:5px 9px;}
+    .add input,.add button{height:36px;}
+    .pct{font-size:24px;}
+    .list{max-height:192px;}
+    .title{font-size:12px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .bar-fill::after,.title .flame,.pill i,.success-glow{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="lockscreen">
+    <div class="clock-wrap">
+      <div class="date" id="dateText">—</div>
+      <div class="clock"><span id="timeText">--:--</span><span class="sec" id="secText">--</span></div>
+    </div>
+    <div class="pill" id="pill"><i></i><span id="pillText">HELL</span></div>
+  </header>
+
+  <main class="stage">
+    <canvas id="scene" aria-label="나태지옥 애니메이션"></canvas>
+  </main>
+
+  <section class="panel">
+    <div class="success-glow"></div>
+    <div class="status">
+      <div class="status-main">
+        <div class="title"><span class="flame"></span><span id="statusTitle">나태지옥 탈출 중</span></div>
+        <div class="sub" id="statusSub">밀린 일 3건 · 멈추면 돌기둥에 깔려요!</div>
+      </div>
+      <div class="pct"><span id="pctNum">40</span><span class="unit">%</span></div>
+    </div>
+    <div class="bar"><div class="bar-fill" id="barFill" style="width:40%"></div></div>
+    <form class="add" id="addForm" autocomplete="off" action="#" onsubmit="return false;">
+      <input id="newTask" name="task" type="text" maxlength="80"
+             placeholder="오늘의 할 일을 적어 넣어요" aria-label="새 할 일"
+             enterkeyhint="done" inputmode="text"
+             autocomplete="off" autocorrect="off" autocapitalize="none"
+             spellcheck="false" autofocus="false">
+      <button type="submit" id="addBtn" aria-label="할 일 추가">+</button>
+    </form>
+    <ul class="list" id="list" aria-label="할 일 목록"></ul>
+    <noscript>
+      <div class="empty" style="color:#ffb59f;">
+        이 미리보기에서는 스크립트가 막혀 있어요. Safari에서 열어 주세요.
+      </div>
+    </noscript>
+  </section>
+</div>
+
+<script>
+window.__slothErrors = [];
+window.addEventListener('error', function (e) {
+  try { window.__slothErrors.push(String(e.message)); } catch (_) {}
+});
+</script>
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     1. DATA
+     ============================================================ */
+  var KEY = 'slothHellTodo.v2';
+  var SEED = [
+    { text: '장보기', done: true },
+    { text: '메일 확인', done: true },
+    { text: '운동 30분', done: false },
+    { text: '물 마시기', done: false },
+    { text: '책 읽기', done: false }
+  ];
+
+  var tasks = [];
+  var seq = 0;
+  function nid() { seq += 1; return 't' + Date.now().toString(36) + seq.toString(36); }
+
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify(tasks)); } catch (e) {}
+  }
+
+  function load() {
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) {}
+    if (raw) {
+      try {
+        var arr = JSON.parse(raw);
+        if (Object.prototype.toString.call(arr) === '[object Array]') {
+          var out = [];
+          for (var i = 0; i < arr.length; i++) {
+            var o = arr[i];
+            if (!o || typeof o.text !== 'string') continue;
+            var t = o.text.replace(/\s+$/, '');
+            if (!t) continue;
+            out.push({
+              id: (typeof o.id === 'string' && o.id) ? o.id : nid(),
+              text: t.slice(0, 140),
+              done: !!o.done
+            });
+          }
+          tasks = out;
+          return;
+        }
+      } catch (e) {}
+    }
+    tasks = SEED.map(function (o) { return { id: nid(), text: o.text, done: o.done }; });
+    persist();
+  }
+
+  function stats() {
+    var total = tasks.length, done = 0;
+    for (var i = 0; i < total; i++) if (tasks[i].done) done += 1;
+    var rem = total - done;
+    return { total: total, done: done, rem: rem, pct: total ? Math.round(done / tasks.length * 100) : 0 };
+  }
+
+  /* ============================================================
+     2. UI
+     ============================================================ */
+  var app = document.getElementById('app');
+  var dateEl = document.getElementById('dateText');
+  var timeEl = document.getElementById('timeText');
+  var secEl = document.getElementById('secText');
+  var pillText = document.getElementById('pillText');
+  var statusTitle = document.getElementById('statusTitle');
+  var statusSub = document.getElementById('statusSub');
+  var pctNum = document.getElementById('pctNum');
+  var barFill = document.getElementById('barFill');
+  var listEl = document.getElementById('list');
+  var formEl = document.getElementById('addForm');
+  var inputEl = document.getElementById('newTask');
+
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9.2 16.8 4 11.6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function renderList() {
+    var keep = listEl.scrollTop;
+    listEl.innerHTML = '';
+    if (!tasks.length) {
+      var empty = document.createElement('li');
+      empty.className = 'empty';
+      empty.textContent = '할 일을 하나 적어 넣으면, 그때부터 지옥이 시작돼요.';
+      listEl.appendChild(empty);
+      return;
+    }
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      var li = document.createElement('li');
+      li.className = 'task' + (t.done ? ' done' : '');
+      li.dataset.id = t.id;
+      li.setAttribute('role', 'checkbox');
+      li.setAttribute('aria-checked', t.done ? 'true' : 'false');
+      li.tabIndex = 0;
+
+      var box = document.createElement('span');
+      box.className = 'box';
+      box.innerHTML = CHECK_SVG;
+
+      var label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = t.text;
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'del';
+      del.setAttribute('aria-label', '삭제');
+      del.textContent = '✕';
+
+      li.appendChild(box);
+      li.appendChild(label);
+      li.appendChild(del);
+      frag.appendChild(li);
+    }
+    listEl.appendChild(frag);
+    listEl.scrollTop = keep;
+  }
+
+  function updateUI() {
+    var s = stats();
+    var heaven = s.total > 0 && s.rem === 0;
+    app.classList.toggle('heaven', heaven);
+
+    if (heaven) {
+      statusTitle.textContent = '오늘도 천국행! MISSION SUCCESS';
+      statusSub.textContent = '밀린 일 0건 · 오늘은 여기서 좀 쉬어요';
+      pillText.textContent = 'HEAVEN';
+    } else {
+      statusTitle.textContent = '나태지옥 탈출 중';
+      if (!s.total) {
+        statusSub.textContent = '할 일을 하나 적어 넣으면 지옥이 시작돼요';
+      } else if (s.rem === 1) {
+        statusSub.textContent = '밀린 일 1건 · 한 칸만 더 가면 천국이에요!';
+      } else {
+        statusSub.textContent = '밀린 일 ' + s.rem + '건 · 멈추면 돌기둥에 깔려요!';
+      }
+      pillText.textContent = 'HELL';
+    }
+    pctNum.textContent = String(s.pct);
+    barFill.style.width = s.pct + '%';
+  }
+
+  function commit() {
+    persist();
+    renderList();
+    updateUI();
+  }
+
+  function toggleTask(id) {
+    for (var i = 0; i < tasks.length; i++) {
+      if (tasks[i].id === id) {
+        tasks[i].done = !tasks[i].done;
+        if (navigator.vibrate) { try { navigator.vibrate(tasks[i].done ? 12 : 8); } catch (e) {} }
+        break;
+      }
+    }
+    commit();
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(function (t) { return t.id !== id; });
+    commit();
+  }
+
+  listEl.addEventListener('click', function (e) {
+    var li = e.target.closest ? e.target.closest('.task') : null;
+    if (!li) {
+      var n = e.target;
+      while (n && n !== listEl) { if (n.classList && n.classList.contains('task')) { li = n; break; } n = n.parentNode; }
+    }
+    if (!li) return;
+    if (e.target.classList && e.target.classList.contains('del')) { deleteTask(li.dataset.id); return; }
+    if (li.contains(e.target) && e.target.closest && e.target.closest('.del')) { deleteTask(li.dataset.id); return; }
+    toggleTask(li.dataset.id);
+  });
+
+  listEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    var li = e.target;
+    if (!li.classList || !li.classList.contains('task')) return;
+    e.preventDefault();
+    toggleTask(li.dataset.id);
+  });
+
+  /* ---------- adding a task: works with IME (한글 조합), Enter and the + button ---------- */
+  var composing = false;
+  var pendingSubmit = false;
+
+  function addTask() {
+    var v = (inputEl.value || '').replace(/^\s+|\s+$/g, '');
+    if (!v) { try { inputEl.focus(); } catch (e0) {} return false; }
+    tasks.push({ id: nid(), text: v.slice(0, 80), done: false });
+    inputEl.value = '';
+    commit();
+    listEl.scrollTop = listEl.scrollHeight;
+    if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e2) {} }
+    return true;
+  }
+
+  inputEl.addEventListener('compositionstart', function () { composing = true; });
+  inputEl.addEventListener('compositionend', function () {
+    composing = false;
+    if (pendingSubmit) { pendingSubmit = false; addTask(); }
+  });
+
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    /* during a Korean IME composition the value is not committed yet - wait for compositionend */
+    if (composing) { pendingSubmit = true; return; }
+    addTask();
+  });
+
+  inputEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.keyCode !== 13) return;
+    e.preventDefault();
+    if (e.isComposing || composing || e.keyCode === 229) { pendingSubmit = true; return; }
+    addTask();
+  });
+
+  /* iOS: keep the field visible above the keyboard */
+  inputEl.addEventListener('focus', function () {
+    setTimeout(function () {
+      try { inputEl.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e3) {
+        try { inputEl.scrollIntoView(); } catch (e4) {}
+      }
+    }, 280);
+  });
+
+  /* clock */
+  var dateFmt = null;
+  try { dateFmt = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }); } catch (e) {}
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+  function tickClock() {
+    var d = new Date();
+    dateEl.textContent = dateFmt ? dateFmt.format(d) : (d.getMonth() + 1) + '월 ' + d.getDate() + '일';
+    timeEl.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    secEl.textContent = pad(d.getSeconds());
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  /* ============================================================
+     3. PIXEL CANVAS ENGINE
+     ============================================================ */
+  var cvs = document.getElementById('scene');
+  var ctx = cvs.getContext('2d');
+  var buf = document.createElement('canvas');
+  var bctx = buf.getContext('2d');
+  var W = 167, H = 360, px = 4;
+
+  var L = { cx: 97, cy: 98, rx: 80, ry: 42, sy: 0.52 };
+  var waterGrad = null;
+  var noise = [];
+
+  /* small radial sprites, built once, so the animation never allocates gradients per frame */
+  function glowSprite(r, g, b, s) {
+    s = s || 64;
+    var c = document.createElement('canvas');
+    c.width = s; c.height = s;
+    var x = c.getContext('2d');
+    var gr = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    gr.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',1)');
+    gr.addColorStop(0.45, 'rgba(' + r + ',' + g + ',' + b + ',0.28)');
+    gr.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0)');
+    x.fillStyle = gr;
+    x.fillRect(0, 0, s, s);
+    return c;
+  }
+  var GLOW_MIST = glowSprite(134, 184, 212);
+  var GLOW_WARM = glowSprite(226, 132, 84);
+  var GLOW_POOL = glowSprite(255, 196, 132);
+  var GLOW_SEA = glowSprite(96, 146, 180);
+  var GLOW_HOT = glowSprite(255, 132, 86);
+  var GLOW_CYAN = glowSprite(79, 227, 255);
+
+  function drawGlow(sprite, cx, cy, rad, alpha) {
+    if (alpha <= 0.004) return;
+    bctx.save();
+    bctx.globalAlpha = Math.min(1, alpha);
+    bctx.imageSmoothingEnabled = true;
+    bctx.drawImage(sprite, cx - rad, cy - rad, rad * 2, rad * 2);
+    bctx.restore();
+    bctx.imageSmoothingEnabled = false;
+  }
+
+  function buildNoise() {
+    noise.length = 0;
+    for (var i = 0; i < 4096; i++) noise.push(Math.random());
+  }
+  function nz(i) { return noise[(i * 2654435761 >>> 0) % 4096]; }
+
+  /* The canvas never stretches: its buffer is an integer number of art pixels
+     (W x H) scaled by an integer factor, so canvas.width/height stay exactly
+     proportional to the CSS box and every art pixel lands on whole device pixels. */
+  function resize() {
+    var host = cvs.parentNode;
+    var rect = host.getBoundingClientRect();
+    var w = Math.max(1, rect.width || 320);
+    var h = Math.max(1, rect.height || 400);
+    var dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
+    /* art pixel size = a whole multiple of the device pixel ratio:
+       the canvas then paints 1:1 on the physical grid, never resampled */
+    var unit = Math.max(dpr, Math.round((w * dpr) / 168 / dpr) * dpr);
+    var nw = Math.max(120, Math.ceil((w * dpr) / unit));
+    var nh = Math.max(160, Math.ceil((h * dpr) / unit));
+    if (nw === W && nh === H && unit === px && cvs.width === W * px && cvs.height === H * px) {
+      layout();
+      return;
+    }
+    px = unit; W = nw; H = nh;
+    buf.width = W; buf.height = H;
+    cvs.width = W * px; cvs.height = H * px;
+    cvs.style.width = (cvs.width / dpr) + 'px';
+    cvs.style.height = (cvs.height / dpr) + 'px';
+    cvs.style.left = Math.round((w - cvs.width / dpr) / 2) + 'px';
+    cvs.style.top = Math.round((h - cvs.height / dpr) / 2) + 'px';
+    ctx.imageSmoothingEnabled = false;
+    bctx.imageSmoothingEnabled = false;
+    layout();
+  }
+
+  function layout() {
+    L.rx = Math.min(W * 0.465, H * 0.40);
+    L.ry = L.rx * 0.52;
+    L.sy = 0.52;
+    L.cx = Math.round(W * 0.5);
+    L.cy = Math.round(H * 0.455);
+    waterGrad = bctx.createLinearGradient(0, 0, 0, H);
+    waterGrad.addColorStop(0, '#060d16');
+    waterGrad.addColorStop(0.28, '#0a1622');
+    waterGrad.addColorStop(0.62, '#0b1824');
+    waterGrad.addColorStop(1, '#050a11');
+  }
+
+  /* ---------- primitives ---------- */
+  function fr(x, y, w, h, c) {
+    bctx.fillStyle = c;
+    bctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+  }
+  function ell(x, y, rx, ry, c) {
+    bctx.beginPath();
+    bctx.ellipse(x, y, Math.max(0.4, rx), Math.max(0.4, ry), 0, 0, Math.PI * 2);
+    bctx.fillStyle = c;
+    bctx.fill();
+  }
+
+  /* capsule in the island's ground plane (u along axis, v across) */
+  function capsule(a, u0, u1, th, lift, vOff, c) {
+    var s = L.sy;
+    bctx.save();
+    bctx.translate(L.cx, L.cy - lift);
+    bctx.scale(1, s);
+    bctx.rotate(a);
+    bctx.beginPath();
+    bctx.moveTo(u0, vOff - th);
+    bctx.lineTo(u1, vOff - th);
+    bctx.arc(u1, vOff, th, -Math.PI / 2, Math.PI / 2, false);
+    bctx.lineTo(u0, vOff + th);
+    bctx.arc(u0, vOff, th, Math.PI / 2, Math.PI * 1.5, false);
+    bctx.closePath();
+    bctx.fillStyle = c;
+    bctx.fill();
+    bctx.restore();
+  }
+
+  /* ---------- water ---------- */
+  function drawWater(t) {
+    bctx.fillStyle = waterGrad;
+    bctx.fillRect(0, 0, W, H);
+
+    /* soft reflection of the island on the sea */
+    drawGlow(GLOW_SEA, L.cx, L.cy + L.ry * 1.25, L.rx * 1.20, 0.17);
+
+    /* drifting mist */
+    for (var i = 0; i < 5; i++) {
+      var mx = W * (0.10 + i * 0.21) + Math.sin(t * 0.13 + i * 1.7) * W * 0.06;
+      var my = H * (0.26 + i * 0.17) + Math.sin(t * 0.21 + i) * 5;
+      var rad = W * (0.26 + 0.05 * i);
+      drawGlow(GLOW_MIST, mx, my, rad, 0.10);
+    }
+
+    /* long, soft swell lines */
+    var row, i2, x, n, len, al;
+    for (row = 0; row < H; row += 6) {
+      var depth = row / H;
+      var ofs = (t * (4 + depth * 15)) % (W + 44);
+      var base = 0.028 + depth * 0.042;
+      for (i2 = 0; i2 < W; i2 += 21) {
+        n = nz(row * 97 + i2 * 13);
+        if (n < 0.46) continue;
+        x = (i2 + ofs + n * 21) % (W + 44) - 22;
+        len = 3 + Math.floor(n * 7);
+        al = base + n * 0.055;
+        bctx.fillStyle = 'rgba(130,192,216,' + al.toFixed(3) + ')';
+        bctx.fillRect(x, row, len, 1);
+      }
+    }
+
+    /* foreground haze + swell */
+    var fg = bctx.createLinearGradient(0, H * 0.78, 0, H);
+    fg.addColorStop(0, 'rgba(10,20,30,0)');
+    fg.addColorStop(1, 'rgba(6,12,19,0.72)');
+    bctx.fillStyle = fg;
+    bctx.fillRect(0, H * 0.78, W, H * 0.22);
+    bctx.fillStyle = 'rgba(4,9,15,0.55)';
+    bctx.fillRect(0, H - 2, W, 2);
+  }
+
+  /* ---------- island ---------- */
+  function drawIsland(t) {
+    var cx = L.cx, cy = L.cy, rx = L.rx, ry = L.ry;
+    var i, a, x, y, f, c;
+
+    /* shadow on the water */
+    ell(cx, cy + ry * 0.40, rx * 1.10, ry * 1.05, 'rgba(0,0,0,0.36)');
+    ell(cx, cy + ry * 0.28, rx * 1.03, ry * 0.99, 'rgba(0,0,0,0.30)');
+
+    /* stepped stone rim */
+    ell(cx, cy + ry * 0.07, rx * 1.015, ry * 1.015, '#20262e');
+    ell(cx, cy + ry * 0.05, rx * 0.995, ry * 0.995, '#3a424c');
+    ell(cx, cy - ry * 0.01, rx * 0.965, ry * 0.965, '#5b6671');
+    ell(cx, cy - ry * 0.04, rx * 0.935, ry * 0.935, '#727d89');
+
+    /* carved rim blocks */
+    for (i = 0; i < 78; i++) {
+      a = i / 78 * Math.PI * 2;
+      f = (Math.sin(a) + 1) / 2;
+      x = cx + Math.cos(a) * rx * 0.945;
+      y = cy + Math.sin(a) * ry * 0.945 - ry * 0.04;
+      c = f > 0.55 ? '#8b96a2' : '#5f6a76';
+      if (i % 3 === 0) c = f > 0.55 ? '#9da8b4' : '#6f7a86';
+      fr(x - 1, y - 1, 2, 2, c);
+    }
+
+    /* inner ground */
+    ell(cx, cy + 1, rx * 0.905, ry * 0.905, '#1b2129');
+    ell(cx, cy, rx * 0.885, ry * 0.885, '#262e38');
+    ell(cx, cy - 1, rx * 0.80, ry * 0.80, '#2e3742');
+
+    /* warm light spilling from the hub */
+    drawGlow(GLOW_WARM, cx, cy - 4, rx * 0.95, 0.20);
+
+    /* carved tracks */
+    var rings = [0.36, 0.52, 0.68, 0.83];
+    for (var r = 0; r < rings.length; r++) {
+      for (i = 0; i < 140; i++) {
+        if (i % 2) continue;
+        a = i / 140 * Math.PI * 2;
+        x = cx + Math.cos(a) * rx * rings[r];
+        y = cy + Math.sin(a) * ry * rings[r];
+        fr(x, y, 1, 1, 'rgba(176,196,218,0.16)');
+      }
+    }
+    /* radial grooves */
+    for (i = 0; i < 16; i++) {
+      a = i / 16 * Math.PI * 2;
+      for (var u = 0.16; u < 0.86; u += 0.045) {
+        x = cx + Math.cos(a) * rx * u;
+        y = cy + Math.sin(a) * ry * u;
+        fr(x, y, 1, 1, 'rgba(150,170,195,0.09)');
+      }
+    }
+    /* faint ember cracks */
+    for (i = 0; i < 5; i++) {
+      a = (i * 1.31 + 0.4);
+      var uu = 0.30 + (i % 3) * 0.19;
+      x = cx + Math.cos(a) * rx * uu;
+      y = cy + Math.sin(a) * ry * uu;
+      fr(x, y, 2, 1, 'rgba(214,96,64,0.22)');
+      fr(x + 2, y + 1, 2, 1, 'rgba(214,96,64,0.14)');
+    }
+
+    /* central hub */
+    var pulse = 0.5 + 0.5 * Math.sin(t * 1.6);
+    ell(cx, cy + 1, rx * 0.215, rx * 0.185, '#161c23');
+    ell(cx, cy - 2, rx * 0.205, rx * 0.178, '#454e59');
+    ell(cx, cy - 5, rx * 0.170, rx * 0.148, '#69737f');
+    ell(cx, cy - 8, rx * 0.128, rx * 0.112, '#8b97a4');
+    ell(cx, cy - 10, rx * 0.070, rx * 0.062, '#2f353d');
+    ell(cx, cy - 10, rx * 0.042, rx * 0.036, 'rgba(238,124,80,' + (0.32 + pulse * 0.34).toFixed(2) + ')');
+    /* hub carvings */
+    for (i = 0; i < 8; i++) {
+      a = i / 8 * Math.PI * 2;
+      fr(cx + Math.cos(a) * rx * 0.095, cy + Math.sin(a) * rx * 0.082 - 8, 1, 1, 'rgba(34,40,48,0.75)');
+    }
+  }
+
+  /* ---------- giant pillars ---------- */
+  function drawPillar(a, tipHeat) {
+    var rx = L.rx;
+    var th = rx * 0.070;
+    var u0 = rx * 0.155;
+    var u1 = rx * 0.845;
+    var hgt = th * 1.75;
+
+    /* ground shadow */
+    capsule(a, u0 - 1, u1 + 2, th * 1.18, -2.5, 0, 'rgba(0,0,0,0.42)');
+
+    /* bevel steps -> chunky stone cylinder */
+    capsule(a, u0, u1, th, 0, 0, '#31363e');
+    capsule(a, u0, u1, th, hgt * 0.50, 0, '#555d67');
+    capsule(a, u0, u1, th, hgt, 0, '#8b949f');
+    capsule(a, u0 + 0.5, u1 - 0.5, th * 0.56, hgt, -th * 0.30, '#a9b2bd');
+
+    /* block joints + rune band */
+    bctx.save();
+    bctx.translate(L.cx, L.cy - hgt);
+    bctx.scale(1, L.sy);
+    bctx.rotate(a);
+    bctx.fillStyle = 'rgba(26,30,37,0.55)';
+    for (var u = u0 + 6; u < u1 - 3; u += 7.5) {
+      bctx.fillRect(u, -th * 0.92, 0.9, th * 1.84);
+    }
+    bctx.fillStyle = 'rgba(220,232,244,0.30)';
+    bctx.fillRect(u0 + 1, -th * 0.9, 1, th * 1.8);
+    bctx.fillStyle = 'rgba(255,150,110,' + (0.25 + tipHeat * 0.55).toFixed(2) + ')';
+    bctx.fillRect(u0 + 3.4, -th * 0.42, 1.4, th * 0.84);
+    bctx.restore();
+
+    /* hot tip when it is chasing the heroine */
+    if (tipHeat > 0.02) {
+      drawGlow(GLOW_HOT,
+        L.cx + Math.cos(a) * u1, L.cy + Math.sin(a) * u1 * L.sy - hgt * 0.5,
+        rx * 0.20, 0.30 * tipHeat);
+    }
+  }
+
+  /* ---------- worker sprites ---------- */
+  function drawWorker(x, y, seed, t, pace) {
+    var f = Math.floor(t * (7 + pace * 9) + seed * 0.37) % 2;
+    var X = Math.round(x), Y = Math.round(y);
+    var dark = '#474d55', mid = '#6d747d', lite = '#8a919a', skin = '#a3aab2';
+
+    bctx.fillStyle = 'rgba(0,0,0,0.30)';
+    bctx.fillRect(X - 2, Y, 4, 1);
+
+    bctx.fillStyle = dark;
+    if (f === 0) {
+      bctx.fillRect(X - 1, Y - 2, 1, 2);
+      bctx.fillRect(X + 1, Y - 2, 1, 2);
+    } else {
+      bctx.fillRect(X, Y - 2, 1, 2);
+      bctx.fillRect(X + 2, Y - 2, 1, 2);
+    }
+
+    bctx.fillStyle = mid;
+    bctx.fillRect(X, Y - 5, 3, 3);
+
+    bctx.fillStyle = lite;
+    if (f === 0) { bctx.fillRect(X - 1, Y - 4, 1, 1); bctx.fillRect(X + 3, Y - 5, 1, 1); }
+    else { bctx.fillRect(X + 3, Y - 4, 1, 1); bctx.fillRect(X - 1, Y - 5, 1, 1); }
+
+    bctx.fillStyle = skin;
+    bctx.fillRect(X, Y - 7, 2, 2);
+    bctx.fillStyle = '#3c4249';
+    bctx.fillRect(X, Y - 8, 2, 1);
+  }
+
+  /* ---------- heroine sprites: clean 16 x 25 pixel-art frames ---------- */
+  var PAL = {
+    H: '#4a2f1c', h: '#6e4a2b', j: '#8a6138',
+    S: '#f7cda9', s: '#d8a57e', e: '#2b1c14', m: '#8e4a42',
+    C: '#ff6a50', c: '#d84b34', k: '#ffa08b',
+    P: '#3c4a63', p: '#4f5d78', W: '#eef3f8'
+  };
+
+  /* the head + face + bob haircut, identical in every frame (no shearing) */
+  var PH_HEAD = [
+    '     HHHHHH     ',
+    '    HHHHHHHH    ',
+    '   HHHHHHHHHH   ',
+    '  HHHhhhhhhHHH  ',
+    '  HHhSSSSSShHH  ',
+    '  HHhSeSSeShHH  ',
+    '  HHhSSSSSShHH  ',
+    '  HHhSSmmSShHH  ',
+    '  hhSSSsSSSShh  ',
+    '   hSSSSSSSSh   ',
+    '    sSSSSSSs    ',
+    '     sSSSSs     ',
+    '     ssSSss     '
+  ];
+
+  /* frame A: right knee up, left arm pumping high */
+  var RUN_A = PH_HEAD.concat([
+    '    CCCCCCCC    ',
+    '  ScCCCCCCCCc   ',
+    '  ScCCCCCCCCcS  ',
+    '   cCCCCCCCCcS  ',
+    '   cCCCCCCCCc   ',
+    '     pPPPPp     ',
+    '   PPP    PPP   ',
+    '   PPP    ppp   ',
+    '   PPP   WWWW   ',
+    '   PPP          ',
+    '   PPP          ',
+    '  WWWW          '
+  ]);
+
+  /* frame B: both feet down, body a pixel higher */
+  var RUN_B = PH_HEAD.concat([
+    '    CCCCCCCC    ',
+    '   cCCCCCCCCc   ',
+    '  ScCCCCCCCCcS  ',
+    '  ScCCCCCCCCcS  ',
+    '   cCCCCCCCCc   ',
+    '     pPPPPp     ',
+    '   PPP    PPP   ',
+    '   PPP    PPP   ',
+    '   PPP    PPP   ',
+    '   PPP    PPP   ',
+    '  WWWW    WWWW  ',
+    '                '
+  ]);
+
+  /* frame C: left knee up, right arm pumping high */
+  var RUN_C = PH_HEAD.concat([
+    '    CCCCCCCC    ',
+    '   cCCCCCCCCcS  ',
+    '  ScCCCCCCCCcS  ',
+    '  ScCCCCCCCCc   ',
+    '   cCCCCCCCCc   ',
+    '     pPPPPp     ',
+    '   PPP    PPP   ',
+    '   ppp    PPP   ',
+    '   WWWW   PPP   ',
+    '          PPP   ',
+    '          PPP   ',
+    '          WWWW  '
+  ]);
+
+  var SPRITE_H = 25, SPRITE_HW = 8;
+
+  /* heaven: sitting on a cloud, iced coffee in hand */
+  var SIT = [
+    '    HHHHHH    ',
+    '   HHHHHHHH   ',
+    '  HHhhhhhhHH  ',
+    '  HHhSSSSShH  ',
+    '  HHhSeSSeSh  ',
+    '  HHhSSSSShH  ',
+    '  HHhhSeSShh  ',
+    '   HhhSSSShh  ',
+    '    hsSSSsh   ',
+    '     sSSSs    ',
+    '   kCCCCCCCc  ',
+    '  SkCCCCCCCCc ',
+    '  sCCCCCCCCCcS',
+    '   cPPPPPPPc  ',
+    '   PPPPPPPPP  ',
+    '   PPPPPPPPP  ',
+    '    WWWWWWW   '
+  ];
+
+  function drawSprite(rows, pal, x, y, scale, outline) {
+    scale = scale || 1;
+    var h = rows.length, r, c, row, ch, col;
+    /* integer grid only: each art pixel is a whole block, never a fraction */
+    x = Math.round(x);
+    y = Math.round(y);
+
+    if (outline) {
+      bctx.fillStyle = outline;
+      for (r = 0; r < h; r++) {
+        row = rows[r];
+        for (c = 0; c < row.length; c++) {
+          ch = row.charAt(c);
+          if (ch === ' ' || ch === '.') continue;
+          bctx.fillRect(x + c * scale - 1, y + r * scale - 1, scale + 2, scale + 2);
+        }
+      }
+    }
+
+    for (r = 0; r < h; r++) {
+      row = rows[r];
+      for (c = 0; c < row.length; c++) {
+        ch = row.charAt(c);
+        if (ch === ' ' || ch === '.') continue;
+        col = pal[ch];
+        if (!col) continue;
+        bctx.fillStyle = col;
+        bctx.fillRect(x + c * scale, y + r * scale, scale, scale);
+      }
+    }
+  }
+
+  /* ---------- sweat particles ---------- */
+  var sweat = [];
+
+  function spawnSweat(x, y, force) {
+    if (sweat.length > 34) return;
+    sweat.push({
+      x: x + (Math.random() * 6 - 3),
+      y: y + (Math.random() * 3 - 1.5),
+      vx: -(0.5 + Math.random() * 1.1) * (0.6 + force * 0.8),
+      vy: -(1.6 + Math.random() * 1.8) * (0.7 + force * 0.5),
+      life: 0.34 + Math.random() * 0.30,
+      age: 0
+    });
+  }
+
+  function updateSweat(dt) {
+    for (var i = sweat.length - 1; i >= 0; i--) {
+      var p = sweat[i];
+      p.age += dt;
+      if (p.age >= p.life) { sweat.splice(i, 1); continue; }
+      p.vy += 7.5 * dt;
+      p.x += p.vx * dt * 7;
+      p.y += p.vy * dt * 7;
+    }
+  }
+
+  function drawSweat() {
+    for (var i = 0; i < sweat.length; i++) {
+      var p = sweat[i];
+      var k = 1 - p.age / p.life;
+      var c = k > 0.55 ? 'rgba(132,214,246,0.92)' : (k > 0.25 ? 'rgba(104,182,224,0.66)' : 'rgba(86,152,198,0.36)');
+      fr(p.x, p.y, 1, 1, c);
+    }
+  }
+
+  /* ---------- ! marker ---------- */
+  function drawMarker(x, y, panic, danger, t) {
+    var shakeX = (panic > 0.30 || danger > 0.5) ? Math.sin(t * 24) * (0.5 + panic * 0.9) : Math.sin(t * 2.4) * 0.2;
+    var bobY = Math.sin(t * 3.2) * 1.2;
+    var pulse = 0.72 + 0.28 * Math.sin(t * (9 + panic * 9));
+    var mx = Math.round(x + shakeX);
+    var my = Math.round(y + bobY);
+
+    /* glow */
+    drawGlow(GLOW_CYAN, x, y + 4, 9, 0.26 * pulse);
+
+    var hot = danger > 0.55 || panic > 0.65;
+    var main = hot ? '#9df7ff' : '#5fe9ff';
+    /* crisp "!" with a 1px dark outline, so it reads on the pale stone */
+    bctx.fillStyle = 'rgba(4,10,16,0.82)';
+    bctx.fillRect(mx - 2, my - 1, 5, 5);
+    bctx.fillRect(mx - 2, my + 5, 5, 4);
+    bctx.fillStyle = main;
+    bctx.fillRect(mx - 1, my, 3, 4);
+    bctx.fillRect(mx - 1, my + 6, 3, 2);
+    bctx.fillStyle = '#e9ffff';
+    bctx.fillRect(mx - 1, my, 1, 3);
+    bctx.fillRect(mx - 1, my + 6, 1, 1);
+  }
+
+  /* ---------- the heroine ---------- */
+  var SWEAT_ACC = 0;
+
+  function drawHeroine(t, dt, rush, danger) {
+    var panic = Math.max(rush, danger * 0.85);
+    var r = L.rx * (0.79 + 0.10 * (1 - rush));
+    var hx = Math.round(L.cx + Math.sin(t * 1.15) * 0.7);
+    var baseY = L.cy + r * L.sy;
+
+    /* warm spotlight pool on the stone */
+    drawGlow(GLOW_POOL, hx, baseY, L.rx * 0.46, 0.30 + danger * 0.12);
+
+    /* shadow */
+    ell(hx, baseY + 0.5, 6, 2.1, 'rgba(0,0,0,0.42)');
+
+    /* speed streaks behind her heels */
+    var streak = 0.4 + danger * 0.6 + panic * 0.4;
+    for (var s = 0; s < 3; s++) {
+      var off = ((t * (26 + s * 9)) % 14);
+      var sx = hx - 8 - off;
+      var sy = baseY - 1 - s;
+      var al = (1 - off / 14) * 0.30 * streak;
+      if (sy < baseY) fr(sx, sy, 3 + s, 1, 'rgba(255,206,160,' + al.toFixed(3) + ')');
+    }
+
+    /* sprint cycle - frantic, but every frame is a hand-drawn, intact sprite */
+    var cadence = 8.5 + panic * 9 + danger * 9;
+    var fi = Math.floor(t * cadence) % 4;
+    var frames = [RUN_A, RUN_B, RUN_C, RUN_B];
+    var bob = (fi % 2 === 0) ? 0 : -1;
+    var sx0 = hx - SPRITE_HW;
+
+    drawSprite(frames[fi], PAL, sx0, Math.round(baseY) - (SPRITE_H - 1) + bob, 1, 'rgba(20,14,12,0.55)');
+
+    /* sweat droplets flying off the temples, never across the face */
+    SWEAT_ACC += dt * (1.6 + panic * 8 + danger * 6);
+    while (SWEAT_ACC >= 1) {
+      SWEAT_ACC -= 1;
+      var side = Math.random() < 0.5 ? -1 : 1;
+      spawnSweat(hx + side * (5.5 + Math.random() * 1.5), baseY - 21 + Math.random() * 4, Math.max(panic, danger));
+    }
+    if (danger > 0.7 && Math.random() < dt * 4) {
+      spawnSweat(hx - 7, baseY - 17, 0.8);
+    }
+
+    drawMarker(hx + 2, Math.round(baseY) - 40 + bob, panic, danger, t);
+  }
+
+  /* ---------- heaven ---------- */
+  var PUFF = [
+    [-15, 1, 9], [-6, -5, 10], [5, -6, 10], [15, 1, 8],
+    [0, 4, 12], [-11, 5, 8], [11, 5, 8]
+  ];
+
+  function drawCloud(cx, cy, s, alpha) {
+    bctx.save();
+    bctx.translate(cx, cy);
+    bctx.scale(s, s);
+    bctx.globalAlpha = alpha;
+    var i;
+    for (i = 0; i < PUFF.length; i++) ell(PUFF[i][0], PUFF[i][1] + 2, PUFF[i][2], PUFF[i][2] * 0.90, '#b9d6ee');
+    for (i = 0; i < PUFF.length; i++) ell(PUFF[i][0], PUFF[i][1], PUFF[i][2], PUFF[i][2] * 0.92, '#ffffff');
+    bctx.globalAlpha = 1;
+    bctx.restore();
+  }
+
+  function goldStar(x, y, a) {
+    bctx.globalAlpha = Math.max(0, Math.min(1, a));
+    var c = '#ffcf5c';
+    fr(x, y - 1, 1, 3, c);
+    fr(x - 1, y, 3, 1, c);
+    bctx.globalAlpha = 1;
+  }
+
+  function goldCheck(x, y, a) {
+    bctx.globalAlpha = Math.max(0, Math.min(1, a));
+    var c = '#ffd25e';
+    fr(x, y + 1, 1, 1, c);
+    fr(x + 1, y + 2, 1, 1, c);
+    fr(x + 2, y + 2, 1, 1, c);
+    fr(x + 3, y + 1, 1, 1, c);
+    fr(x + 4, y, 1, 1, c);
+    bctx.globalAlpha = 1;
+  }
+
+  function drawIcedCoffee(x, y, s) {
+    s = s || 1;
+    /* straw */
+    fr(x + 2.6 * s, y - 5 * s, s, 5 * s, '#f26060');
+    fr(x + 3.6 * s, y - 6 * s, s, 2 * s, '#f26060');
+    /* lid */
+    fr(x, y, 5 * s, s, '#ffffff');
+    fr(x, y + s, 5 * s, 0.6 * s, 'rgba(176,206,228,0.75)');
+    /* cup + iced coffee */
+    fr(x + 0.4 * s, y + 1.4 * s, 4.2 * s, 4.4 * s, 'rgba(232,244,254,0.90)');
+    fr(x + s, y + 2 * s, 3 * s, 3.2 * s, '#8a5a34');
+    fr(x + s, y + 2 * s, 3 * s, 0.7 * s, '#a9703f');
+    fr(x + 1.6 * s, y + 2.9 * s, s, s, 'rgba(255,255,255,0.85)');
+    fr(x + 2.8 * s, y + 3.8 * s, s, s, 'rgba(255,255,255,0.6)');
+    /* base */
+    fr(x + 0.6 * s, y + 5.8 * s, 3.8 * s, 0.7 * s, 'rgba(232,244,254,0.90)');
+  }
+
+  function drawHeaven(t) {
+    var g = bctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#8ec8ee');
+    g.addColorStop(0.28, '#c3e5fa');
+    g.addColorStop(0.56, '#ffe2f0');
+    g.addColorStop(0.82, '#fff0d8');
+    g.addColorStop(1, '#fff9e8');
+    bctx.fillStyle = g;
+    bctx.fillRect(0, 0, W, H);
+
+    var sx = W * 0.74, sy = H * 0.13;
+    var sg = bctx.createRadialGradient(sx, sy, 1, sx, sy, W * 0.62);
+    sg.addColorStop(0, 'rgba(255,252,226,0.95)');
+    sg.addColorStop(0.16, 'rgba(255,238,190,0.50)');
+    sg.addColorStop(1, 'rgba(255,236,180,0)');
+    bctx.fillStyle = sg;
+    bctx.fillRect(0, 0, W, H);
+    ell(sx, sy, 8, 8, 'rgba(255,250,214,0.85)');
+
+    /* drifting distant clouds */
+    for (var i = 0; i < 5; i++) {
+      var sp = 1.7 + i * 0.9;
+      var cx2 = ((t * sp + i * 83) % (W + 72) + (W + 72)) % (W + 72) - 36;
+      var cy2 = H * (0.12 + i * 0.075) + Math.sin(t * 0.5 + i * 1.4) * 1.6;
+      drawCloud(cx2, cy2, 0.52 + (i % 2) * 0.22, 0.92);
+    }
+
+    /* twinkles */
+    for (var j = 0; j < 18; j++) {
+      var tx = (((j * 29) % 100) / 100) * W;
+      var ty = (((j * 61) % 100) / 100) * H * 0.62 + H * 0.05;
+      var tw = 0.5 + 0.5 * Math.sin(t * 2.2 + j * 1.9);
+      var al = 0.10 + 0.80 * tw * tw;
+      if (j % 4 === 0) goldCheck(tx, ty, al); else goldStar(tx, ty, al);
+    }
+
+    /* soft cloud bed so the sky has depth */
+    drawCloud(W * 0.16, H * 0.97, 1.55, 0.5);
+    drawCloud(W * 0.86, H * 1.00, 1.75, 0.45);
+
+    /* the big cloud + our heroine */
+    var bob = Math.sin(t * 1.05) * 1.3;
+    var py = H * 0.665 + bob;
+    drawCloud(W * 0.5, py, 1.38, 1);
+
+    var scale = 2;
+    var hx2 = Math.round(W * 0.5 - 14);
+    var hy2 = Math.round(py - 46 + Math.sin(t * 1.05 + 0.6) * 0.8);
+
+    /* halo */
+    bctx.save();
+    bctx.translate(hx2 + 7 * scale, hy2 - 12);
+    bctx.beginPath();
+    bctx.ellipse(0, 0, 7 * scale * 0.76, 7 * scale * 0.26, 0, 0, Math.PI * 2);
+    bctx.strokeStyle = 'rgba(255,214,110,0.95)';
+    bctx.lineWidth = 2;
+    bctx.stroke();
+    bctx.strokeStyle = 'rgba(255,246,205,0.65)';
+    bctx.lineWidth = 0.9;
+    bctx.stroke();
+    bctx.restore();
+    /* halo glints */
+    var gl = 0.4 + 0.6 * Math.abs(Math.sin(t * 2.1));
+    fr(hx2 + 7 * scale - 8, hy2 - 11, 1, 1, 'rgba(255,245,200,' + gl.toFixed(2) + ')');
+    fr(hx2 + 7 * scale + 8, hy2 - 11, 1, 1, 'rgba(255,245,200,' + (gl * 0.8).toFixed(2) + ')');
+
+    drawSprite(SIT, PAL, hx2, hy2, scale, null);
+
+    /* iced coffee in her raised hand */
+    drawIcedCoffee(hx2 + 24, hy2 + 12, 2);
+
+    /* sparkles near her */
+    for (var k = 0; k < 6; k++) {
+      var ang = t * 0.7 + k * 1.05;
+      var rad = 11 + (k % 3) * 5;
+      var px2 = hx2 + 7 * scale + Math.cos(ang) * rad;
+      var py2 = hy2 + 6 * scale + Math.sin(ang) * rad * 0.5;
+      var a2 = 0.25 + 0.55 * Math.abs(Math.sin(t * 1.8 + k));
+      fr(px2, py2, 1, 1, 'rgba(255,236,170,' + a2.toFixed(2) + ')');
+    }
+  }
+
+  /* ============================================================
+     4. LOOP
+     ============================================================ */
+  var spin = 0.35;
+  var rush = 0.6;
+  var danger = 0;
+  var heavenMix = 0;
+  var lastTs = 0;
+
+  function angDist(a, b) {
+    var d = (a - b) % (Math.PI * 2);
+    if (d > Math.PI) d -= Math.PI * 2;
+    if (d < -Math.PI) d += Math.PI * 2;
+    return Math.abs(d);
+  }
+
+  function pillarDanger(heroAngle) {
+    var best = Math.PI;
+    for (var i = 0; i < 3; i++) {
+      var d = angDist(spin + i * (Math.PI * 2 / 3), heroAngle);
+      if (d < best) best = d;
+    }
+    var v = 1 - best / 0.72;
+    return Math.max(0, Math.min(1, v));
+  }
+
+  function render(t, dt) {
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.globalAlpha = 1;
+
+    if (heavenMix < 0.995) {
+      drawWater(t);
+      drawIsland(t);
+
+      var heroAngle = Math.PI / 2;
+      var sorted = [0, 1, 2].map(function (i) {
+        var a = spin + i * (Math.PI * 2 / 3);
+        return { i: i, a: a, s: Math.sin(a) };
+      }).sort(function (p, q) { return p.s - q.s; });
+
+      /* workers grouped behind / in front of the pillars */
+      var back = [], front = [];
+      for (var gi = 0; gi < 3; gi++) {
+        var baseA = spin + gi * (Math.PI * 2 / 3);
+        for (var wi = 0; wi < 9; wi++) {
+          var rr = L.rx * (0.28 + (wi % 3) * 0.15);
+          var off = 0.07 + wi * 0.048 + Math.sin(t * 4 + wi * 1.3) * 0.012;
+          var a = baseA + off;
+          var wx = L.cx + Math.cos(a) * rr;
+          var wy = L.cy + Math.sin(a) * rr * L.sy;
+          var w = { x: wx, y: wy, seed: wi + gi * 9 };
+          if (Math.sin(a) < 0) back.push(w); else front.push(w);
+        }
+      }
+      back.sort(function (p, q) { return p.y - q.y; });
+      front.sort(function (p, q) { return p.y - q.y; });
+
+      var pace = 0.25 + rush * 1.1;
+      var bi;
+      for (bi = 0; bi < back.length; bi++) drawWorker(back[bi].x, back[bi].y, back[bi].seed, t, pace);
+
+      for (var pi = 0; pi < sorted.length; pi++) {
+        var tipHeat = (sorted[pi].s > 0.55) ? Math.max(0, 1 - angDist(sorted[pi].a, heroAngle) / 0.9) : 0;
+        drawPillar(sorted[pi].a, tipHeat);
+      }
+
+      for (bi = 0; bi < front.length; bi++) drawWorker(front[bi].x, front[bi].y, front[bi].seed, t, pace);
+
+      updateSweat(dt);
+      drawHeroine(t, dt, rush, danger);
+      drawSweat();
+    }
+
+    if (heavenMix > 0.005) {
+      bctx.globalAlpha = Math.min(1, heavenMix);
+      drawHeaven(t);
+      bctx.globalAlpha = 1;
+    }
+
+    if (heavenMix > 0.02 && heavenMix < 0.98) {
+      var fl = Math.sin(heavenMix * Math.PI);
+      bctx.fillStyle = 'rgba(255,252,238,' + (fl * 0.34).toFixed(3) + ')';
+      bctx.fillRect(0, 0, W, H);
+    }
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    ctx.drawImage(buf, 0, 0, W, H, 0, 0, W * px, H * px);
+  }
+
+  function loop(ts) {
+    var t = ts / 1000;
+    var dt = lastTs ? (ts - lastTs) / 1000 : 0.016;
+    lastTs = ts;
+    if (dt > 0.08) dt = 0.08;
+
+    var s = stats();
+    var target = s.total ? s.rem / s.total : 0;
+    rush += (target - rush) * Math.min(1, dt * 3.2);
+
+    var speed = 0.20 + 1.30 * Math.pow(Math.max(0, rush), 0.9);
+    spin += dt * speed;
+
+    var dNow = pillarDanger(Math.PI / 2);
+    danger += (dNow - danger) * Math.min(1, dt * 9);
+
+    var heavenTarget = (s.total > 0 && s.rem === 0) ? 1 : 0;
+    heavenMix += (heavenTarget - heavenMix) * Math.min(1, dt * 2.4);
+    if (heavenTarget === 1 && heavenMix > 0.985) heavenMix = 1;
+    if (heavenTarget === 0 && heavenMix < 0.015) heavenMix = 0;
+
+    render(t, dt);
+    requestAnimationFrame(loop);
+  }
+
+  /* ============================================================
+     5. BOOT
+     ============================================================ */
+  load();
+  renderList();
+  updateUI();
+
+  /* keep the app the size of the visible area, so the keyboard never hides the input row */
+  function fitViewport() {
+    var vv = window.visualViewport;
+    var h = vv ? vv.height : window.innerHeight;
+    var w = vv ? vv.width : window.innerWidth;
+    if (!h || !w) return;
+    app.style.setProperty('--app-h', Math.round(h) + 'px');
+    if (w < 600) app.style.height = Math.round(h) + 'px';
+    else app.style.height = '';
+  }
+
+  fitViewport();
+  resize();
+  buildNoise();
+  fitViewport();
+  resize();
+
+  /* canvas rebuilds are debounced so the keyboard animation does not thrash it */
+  var resizeTimer = 0;
+  function scheduleResize() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { resizeTimer = 0; resize(); }, 140);
+  }
+
+  var ro = null;
+  window.addEventListener('resize', function () { fitViewport(); scheduleResize(); });
+  window.addEventListener('orientationchange', function () { setTimeout(function () { fitViewport(); resize(); }, 260); });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () { fitViewport(); scheduleResize(); });
+    window.visualViewport.addEventListener('scroll', fitViewport);
+  }
+  if (window.ResizeObserver) {
+    ro = new ResizeObserver(function () { scheduleResize(); });
+    ro.observe(cvs.parentNode);
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) lastTs = 0;
+  });
+
+  requestAnimationFrame(loop);
+  window.__slothReady = true;
+})();
+</script>
+</body>
+</html>
