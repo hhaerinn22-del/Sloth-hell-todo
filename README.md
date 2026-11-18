@@ -7,6 +7,11 @@
 - 할 일은 브라우저 `localStorage`에만 저장됩니다. 서버로 전송되지 않습니다.
 - 아이폰 Safari에서 열고 "홈 화면에 추가"하면 앱처럼 전체 화면으로 실행됩니다.
 
-## 사용
+## 주소
 
-https://hhaerinn22-del.github.io/sloth-hell-todo/
+https://hhaerinn22-del.github.io/Sloth-hell-todo/
+
+## 수정 방법
+
+GitHub Pages가 `gh-pages` 브랜치를 배포 소스로 사용합니다.
+`index.html`을 고친 뒤 `gh-pages` 브랜치에 푸시하면 1~2분 안에 반영됩니다.
