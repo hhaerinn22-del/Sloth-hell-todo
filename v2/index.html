@@ -123,6 +123,24 @@
   .disc img.on{opacity:1;}
   .app-heaven .disc img.on{filter:sepia(.30) saturate(1.12) brightness(1.16) contrast(1.02);}
 
+  /* my character: 4-frame pixel sprite that keeps pushing / running.
+     It lives inside the rotating layer (same coordinates as the disc) and is
+     counter-rotated around the arena centre, so it stays on its spot on the
+     turntable, upright, while the pillars and the floor turn underneath. */
+  .hero{
+    position:absolute;left:0;top:0;width:0;height:0;
+    background-image:url(../assets/hero-frames.png);
+    background-repeat:no-repeat;
+    background-position:0 0;
+    image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;
+    -webkit-user-select:none;user-select:none;
+    pointer-events:none;
+    will-change:transform,background-position;
+    backface-visibility:hidden;
+  }
+  .app-heaven .hero{filter:sepia(.26) saturate(1.12) brightness(1.15) contrast(1.02);}
+
   /* colour grade: top scrim keeps the clock readable, bottom melts into the panel */
   .grade{
     position:absolute;inset:0;pointer-events:none;
@@ -547,6 +565,7 @@
           <img id="discRun" src="../assets/disc-run-120deg-left.png" data-png="../assets/disc-run-120deg-left.png"
                alt="" draggable="false" decoding="async">
         </picture>
+        <div class="hero" id="hero" aria-hidden="true"></div>
       </div>
     </div>
     <div class="grade"></div>
@@ -722,6 +741,7 @@ window.addEventListener('error', function (e) {
   var discEl = document.getElementById('disc');
   var discPush = document.getElementById('discPush');
   var discRun = document.getElementById('discRun');
+  var heroEl = document.getElementById('hero');
 
   /* if the webp turntable layer cannot be fetched, drop the <source> and use the png copy */
   function discFallback(img) {
@@ -1014,6 +1034,41 @@ window.addEventListener('error', function (e) {
        the base images, so both are laid out and painted identically: at 0deg the
        disc is invisible. Only its transform-origin has to reach the arena centre. */
     discEl.style.transformOrigin = ARENA.cx.toFixed(2) + 'px ' + (ARENA.cy - by).toFixed(2) + 'px';
+    mapHero();
+  }
+
+  /* ---------------------------------------------------------------- my character */
+  /* position measured on the source artwork (941x1672): the coral-red worker stands
+     with his boots at y=894, centred on x=634; the sprite box is 96 source px tall. */
+  var HERO_SRC = { x: 634, feetY: 894, h: 96 };
+  var SPRITE = { w: 22, h: 30, frames: 8 };
+  var heroBox = { w: 0, h: 0, left: 0, top: 0 };
+  var heroFrame = 0, heroAcc = 0, heroCad = 0, heroShown = -1;
+  var FXFEET = { x: 0, y: 0 };
+
+  function mapHero() {
+    var W = app.clientWidth, H = app.clientHeight;
+    var bh = H * WRAP, by = H - bh;
+    var s = Math.max(W / IMG_W, bh / IMG_H);
+    var dw = IMG_W * s, dh = IMG_H * s;
+    /* left/top are in turntable-layer coordinates (.bgwrap box), the same space the
+       disc images are laid out in — not app coordinates, which start one `by` higher */
+    var ox = (W - dw) / 2, oy = (bh - dh) / 2;
+    var hh = Math.round(HERO_SRC.h * s), ww = Math.round(hh * SPRITE.w / SPRITE.h);
+    var left = ox + HERO_SRC.x / IMG_W * dw - ww / 2;
+    var top = oy + HERO_SRC.feetY / IMG_H * dh - hh;
+    heroBox = { w: ww, h: hh, left: left, top: top };
+    heroEl.style.width = ww.toFixed(2) + 'px';
+    heroEl.style.height = hh.toFixed(2) + 'px';
+    heroEl.style.left = left.toFixed(2) + 'px';
+    heroEl.style.top = top.toFixed(2) + 'px';
+    heroEl.style.backgroundSize = (ww * SPRITE.frames).toFixed(2) + 'px ' + hh.toFixed(2) + 'px';
+    /* counter-rotate about the arena centre: the parent turns by +spin, this turns
+       back by the same amount, so the sprite keeps its place and stays upright */
+    heroEl.style.transformOrigin = (ARENA.cx - left).toFixed(2) + 'px ' + (ARENA.cy - by - top).toFixed(2) + 'px';
+    FXFEET.x = left + ww / 2;
+    FXFEET.y = top + hh + by;
+    heroShown = -1;
   }
 
   function glowSprite(r, g, b) {
@@ -1082,6 +1137,23 @@ window.addEventListener('error', function (e) {
     });
   }
 
+  function emitFoot() {
+    if (reduce) return;
+    var kick = (mode === 'run') ? 1 : 0.4;
+    for (var i = 0; i < 2; i++) {
+      pushPart({
+        k: 3,
+        x: FXFEET.x + (Math.random() - 0.5) * heroBox.w * 0.55,
+        y: FXFEET.y - Math.random() * 3,
+        vx: kick * (9 + Math.random() * 20),
+        vy: -(3 + Math.random() * 13),
+        life: 0.45 + Math.random() * 0.5,
+        age: 0,
+        s: 1
+      });
+    }
+  }
+
   function emitSweat() {
     var a = -Math.PI * 0.5 + (Math.random() - 0.5) * 1.1;
     pushPart({
@@ -1145,6 +1217,9 @@ window.addEventListener('error', function (e) {
       } else if (p.k === 2) {
         p.vy += 190 * dt;
         p.vx *= (1 - 1.1 * dt);
+      } else if (p.k === 3) {
+        p.vy += 52 * dt;
+        p.vx *= (1 - 1.4 * dt);
       } else {
         p.vx += Math.sin(p.age * 1.7 + p.x * 0.05) * 5 * dt;
         p.vy *= (1 - 0.4 * dt);
@@ -1165,10 +1240,14 @@ window.addEventListener('error', function (e) {
           ? 'rgba(255,178,84,' + al.toFixed(3) + ')'
           : 'rgba(255,96,58,' + al.toFixed(3) + ')';
         fctx.fillRect(Math.round(p.x), Math.round(p.y), 1, p.s + (flick > 0.6 ? 1 : 0));
-      } else {
+      } else if (p.k === 2) {
         al = 0.9 * Math.min(1, k * 2.4);
         fctx.fillStyle = 'rgba(150,232,255,' + al.toFixed(3) + ')';
         fctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 2);
+      } else {
+        al = 0.55 * Math.min(1, k * 2.2);
+        fctx.fillStyle = 'rgba(206,186,158,' + al.toFixed(3) + ')';
+        fctx.fillRect(Math.round(p.x), Math.round(p.y), 1 + (p.s > 0 ? 1 : 0), 1);
       }
     }
 
@@ -1278,6 +1357,33 @@ window.addEventListener('error', function (e) {
     return v;
   }
 
+  /* ---------------------------------------------------------------- sprite clock */
+  function heroNow(dt, urg, heaven) {
+    heroEl.style.transform = 'rotate(' + (-spin).toFixed(2) + 'deg)';
+    var heavenNow = heaven > 0.98;
+    /* steps get quicker the more is still undone; the run scene is a touch faster;
+       at 100% the celebration stops him mid-stride along with the turntable */
+    var cad = 0;
+    if (!heavenNow) {
+      cad = (1.2 + 2.8 * Math.max(0, Math.min(1, urg))) * (mode === 'run' ? 1.25 : 1);
+      if (reduce) cad = Math.min(cad, 0.7);
+    }
+    heroCad = cad;
+    if (cad > 0) {
+      heroAcc += dt * cad;
+      while (heroAcc >= 1) {
+        heroAcc -= 1;
+        heroFrame = (heroFrame + 1) % 4;
+        emitFoot();
+      }
+    }
+    var idx = (mode === 'run' ? 4 : 0) + heroFrame;
+    if (idx !== heroShown) {
+      heroShown = idx;
+      heroEl.style.backgroundPosition = (-idx * heroBox.w).toFixed(2) + 'px 0';
+    }
+  }
+
   function spinNow(dt, urg, heaven) {
     var tv = spinTargetSpeed(urg, heaven);
     /* spool up gently, and come to a real standstill in heaven instead of
@@ -1323,6 +1429,7 @@ window.addEventListener('error', function (e) {
 
     shakeNow(t);
     spinNow(dt, urgency, heavenTarget);
+    heroNow(dt, urgency, heavenTarget);
     drawFX(t, dt);
     drawConfetti(t, dt);
 
@@ -1427,6 +1534,19 @@ window.addEventListener('error', function (e) {
       heaven: heavenEl.classList.contains('on'),
       fx: { w: fx.width, h: fx.height },
       particles: parts.length,
+      hero: {
+        frame: heroFrame,
+        idx: heroShown,
+        cadence: Number(heroCad.toFixed(2)),
+        box: { w: Number(heroBox.w.toFixed(2)), h: Number(heroBox.h.toFixed(2)),
+               left: Number(heroBox.left.toFixed(2)), top: Number(heroBox.top.toFixed(2)) },
+        feet: { x: Number(FXFEET.x.toFixed(2)), y: Number(FXFEET.y.toFixed(2)) },
+        sprite: { w: SPRITE.w, h: SPRITE.h, frames: SPRITE.frames },
+        transform: heroEl.style.transform,
+        origin: heroEl.style.transformOrigin,
+        position: heroEl.style.backgroundPosition,
+        size: heroEl.style.backgroundSize
+      },
       spin: {
         angle: Number(spin.toFixed(2)),
         speed: Number(spinV.toFixed(3)),
