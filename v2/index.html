@@ -87,16 +87,41 @@
     object-position:50% 50%;
     display:block;
     opacity:0;
-    transform:scale(1.004);
-    transition:opacity .62s ease, filter 1.1s ease, transform 1.2s cubic-bezier(.22,1,.36,1);
+    /* no extra zoom here: the turntable layer must line up with the base pixel for
+       pixel, and the shake already scales .art to hide the frame edges */
+    transform:none;
+    transition:opacity .62s ease, filter 1.1s ease;
     image-rendering:auto;
     -webkit-user-select:none;user-select:none;
     -webkit-user-drag:none;
     pointer-events:none;
   }
   .bg.on{opacity:1;}
-  .bg.zoom{transform:scale(1.035);}
   .app-heaven .bg.on{filter:sepia(.30) saturate(1.12) brightness(1.16) contrast(1.02);}
+
+  /* the turntable: same frame as the artwork, pre-masked to a feathered circle
+     around the measured arena centre — it spins while the base stays put */
+  .disc{
+    position:absolute;inset:0;
+    transform-origin:50% 50%;
+    will-change:transform;
+    backface-visibility:hidden;
+    pointer-events:none;
+    contain:layout style;
+  }
+  .disc img{
+    position:absolute;left:0;top:0;width:100%;height:100%;
+    object-fit:cover;
+    object-position:50% 50%;
+    display:block;
+    opacity:0;
+    transition:opacity .62s ease, filter 1.1s ease;
+    -webkit-user-select:none;user-select:none;
+    -webkit-user-drag:none;
+    pointer-events:none;
+  }
+  .disc img.on{opacity:1;}
+  .app-heaven .disc img.on{filter:sepia(.30) saturate(1.12) brightness(1.16) contrast(1.02);}
 
   /* colour grade: top scrim keeps the clock readable, bottom melts into the panel */
   .grade{
@@ -511,6 +536,16 @@
            alt="나태지옥 — 거대한 돌기둥을 함께 미는 장면" draggable="false" decoding="async">
       <img class="bg" id="bgRun" src="../assets/sloth-hell-pixel-run-120deg-left.png"
            alt="나태지옥 — 돌기둥에서 달아나는 장면" draggable="false" decoding="async">
+      <div class="disc" id="disc" aria-hidden="true">
+        <picture>
+          <source type="image/webp" srcset="../assets/disc-push-120deg.webp">
+          <img id="discPush" src="../assets/disc-push-120deg.png" alt="" draggable="false" decoding="async">
+        </picture>
+        <picture>
+          <source type="image/webp" srcset="../assets/disc-run-120deg-left.webp">
+          <img id="discRun" src="../assets/disc-run-120deg-left.png" alt="" draggable="false" decoding="async">
+        </picture>
+      </div>
     </div>
     <div class="grade"></div>
     <div class="vignette"></div>
@@ -682,6 +717,9 @@ window.addEventListener('error', function (e) {
   var veil = document.getElementById('veil');
   var bgPush = document.getElementById('bgPush');
   var bgRun = document.getElementById('bgRun');
+  var discEl = document.getElementById('disc');
+  var discPush = document.getElementById('discPush');
+  var discRun = document.getElementById('discRun');
 
   var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9.2 16.8 4 11.6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -882,6 +920,8 @@ window.addEventListener('error', function (e) {
     var isRun = mode === 'run';
     bgPush.classList.toggle('on', !isRun);
     bgRun.classList.toggle('on', isRun);
+    discPush.classList.toggle('on', !isRun);
+    discRun.classList.toggle('on', isRun);
     for (var i = 0; i < modeBtns.length; i++) {
       var on = modeBtns[i].getAttribute('data-mode') === mode;
       modeBtns[i].classList.toggle('on', on);
@@ -927,10 +967,19 @@ window.addEventListener('error', function (e) {
   try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 
   var IMG_W = 941, IMG_H = 1672, WRAP = 1.18;
-  var ARENA = { cx: 195, cy: 420, rx: 130, ry: 52 };
+  var ARENA = { cx: 195, cy: 420, r: 78, rx: 130, ry: 52 };
 
-  /* the arena ellipse, in fractions of the source illustration */
-  var ARENA_F = { x: 0.585, y: 0.545, rx: 0.335, ry: 0.115 };
+  /* Arena geometry, measured on both illustrations (941x1672 source pixels).
+     The centre is the convergence point of the pillar edges: an orientation-voted
+     vanishing-point fit on the long edges of the two source images lands on
+     (486,776) and (494,779) — averaged to (490,777) — and matches the OpenCV
+     Hough circle fits (x 479~497, y 689~919). `r` is the turntable radius. */
+  var ARENA_SRC = { cx: 490, cy: 777, r: 380 };
+  var ARENA_F = {
+    x: ARENA_SRC.cx / IMG_W,
+    y: ARENA_SRC.cy / IMG_H,
+    r: ARENA_SRC.r / IMG_W
+  };
 
   function mapArena() {
     var W = app.clientWidth, H = app.clientHeight;
@@ -938,10 +987,16 @@ window.addEventListener('error', function (e) {
     var s = Math.max(bw / IMG_W, bh / IMG_H);
     var dw = IMG_W * s, dh = IMG_H * s;
     var ox = (bw - dw) / 2, oy = by + (bh - dh) / 2;
-    ARENA.cx = ox + ARENA_F.x * dw;
+    ARENA.cx = ox + ARENA_F.x * dw;          /* app coordinates */
     ARENA.cy = oy + ARENA_F.y * dh;
-    ARENA.rx = ARENA_F.rx * dw;
-    ARENA.ry = ARENA_F.ry * dh;
+    ARENA.r  = ARENA_F.r * dw;               /* the disc is round: uniform scale */
+    ARENA.rx = ARENA.r * 0.92;               /* ring used by the ember/glow fx */
+    ARENA.ry = ARENA.r * 0.40;
+
+    /* the turntable layer is a masked copy of the artwork in the very same box as
+       the base images, so both are laid out and painted identically: at 0deg the
+       disc is invisible. Only its transform-origin has to reach the arena centre. */
+    discEl.style.transformOrigin = ARENA.cx.toFixed(2) + 'px ' + (ARENA.cy - by).toFixed(2) + 'px';
   }
 
   function glowSprite(r, g, b) {
@@ -1190,6 +1245,38 @@ window.addEventListener('error', function (e) {
   }
 
   /* ============================================================
+     6b. TURNTABLE — the arena and its three pillars turn clockwise
+     ============================================================ */
+  var spin = 0;         /* degrees, clockwise */
+  var spinV = 0;        /* degrees per second */
+  var spinShown = null;
+
+  /* more undone = faster and more frantic; one left = barely turning; heaven = stop */
+  function spinTargetSpeed(urg, heaven) {
+    if (heaven) return 0;
+    var u = Math.max(0, Math.min(1, urg));
+    var v = 2.4 + 13.2 * Math.pow(u, 1.15);
+    if (mode === 'run') v *= 1.22;
+    if (reduce) v = Math.min(v, 4.2);
+    return v;
+  }
+
+  function spinNow(dt, urg, heaven) {
+    var tv = spinTargetSpeed(urg, heaven);
+    /* spool up gently, and come to a real standstill in heaven instead of
+       creeping forever at a fraction of a degree per second */
+    spinV += (tv - spinV) * Math.min(1, dt * (tv === 0 ? 3.4 : 2.2));
+    if (tv === 0 && spinV < 0.12) spinV = 0;
+    spin += spinV * dt;
+    if (spin >= 360) spin -= 360;
+    var deg = spin.toFixed(2);
+    if (deg !== spinShown) {
+      spinShown = deg;
+      discEl.style.transform = 'rotate(' + deg + 'deg)';
+    }
+  }
+
+  /* ============================================================
      6. MAIN LOOP
      ============================================================ */
   var last = 0;
@@ -1218,6 +1305,7 @@ window.addEventListener('error', function (e) {
     }
 
     shakeNow(t);
+    spinNow(dt, urgency, heavenTarget);
     drawFX(t, dt);
     drawConfetti(t, dt);
 
@@ -1305,9 +1393,10 @@ window.addEventListener('error', function (e) {
   window.__slothState = function () {
     var pr = document.getElementById('panel').getBoundingClientRect();
     var ar = art.getBoundingClientRect();
+    var s = stats();
     return {
       mode: mode,
-      stats: stats(),
+      stats: s,
       urgency: Number(urgency.toFixed(3)),
       arena: { x: ARENA.cx, y: ARENA.cy, rx: ARENA.rx, ry: ARENA.ry },
       panelTop: pr.top,
@@ -1321,6 +1410,17 @@ window.addEventListener('error', function (e) {
       heaven: heavenEl.classList.contains('on'),
       fx: { w: fx.width, h: fx.height },
       particles: parts.length,
+      spin: {
+        angle: Number(spin.toFixed(2)),
+        speed: Number(spinV.toFixed(3)),
+        target: Number(spinTargetSpeed(urgency, s.total > 0 && s.rem === 0).toFixed(3)),
+        transform: discEl.style.transform,
+        left: discEl.style.left,
+        top: discEl.style.top,
+        size: discEl.style.width,
+        r: Number(ARENA.r.toFixed(2)),
+        src: { x: ARENA_SRC.cx, y: ARENA_SRC.cy, r: ARENA_SRC.r }
+      },
       errors: window.__slothErrors
     };
   };
