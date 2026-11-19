@@ -1359,6 +1359,8 @@ window.addEventListener('error', function (e) {
 
   /* ---------------------------------------------------------------- sprite clock */
   function heroNow(dt, urg, heaven) {
+    /* the counter-rotation is what keeps him on his spot and upright while the disc
+       turns. Remove this line and he rides the turntable instead, tipping over with it. */
     heroEl.style.transform = 'rotate(' + (-spin).toFixed(2) + 'deg)';
     var heavenNow = heaven > 0.98;
     /* steps get quicker the more is still undone; the run scene is a touch faster;
