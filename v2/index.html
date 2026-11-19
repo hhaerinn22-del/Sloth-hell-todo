@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>나태지옥 탈출 투두 · ver2</title>
+<meta name="theme-color" content="#05070b">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="나태지옥 탈출 투두 ver2. 밀린 일이 많을수록 돌기둥이 흔들리고 불티가 튄다.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="나태지옥">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070a10'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23ff6a50' stroke-width='2.4'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%23ffcf5c'/%3E%3C/svg%3E">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Sloth Hell To-do v2","short_name":"SlothHell2","start_url":".","display":"standalone","orientation":"portrait","background_color":"%2305070b","theme_color":"%23070a10"}'>
+<link rel="preload" as="image" href="../assets/sloth-hell-pixel-push-120deg.png" fetchpriority="high">
+<link rel="preload" as="image" href="../assets/sloth-hell-pixel-run-120deg-left.png">
+<style>
+  :root{
+    --coral:#ff6a50;
+    --coral-deep:#e0452f;
+    --gold:#ffcf5c;
+    --cyan:#8fe9ff;
+    --ink:#eef4fb;
+    --urg:0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:#04060a;
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","맑은 고딕",system-ui,"Segoe UI",Roboto,sans-serif;
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-font-smoothing:antialiased;
+    touch-action:manipulation;
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+  }
+  /* typing must always work, even if a parent ever sets user-select:none */
+  input,textarea,[contenteditable]{
+    -webkit-user-select:text !important;
+    user-select:text !important;
+    pointer-events:auto !important;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  #app{
+    position:relative;
+    width:100%;
+    height:var(--app-h,100dvh);
+    flex:0 0 auto;
+    overflow:hidden;
+    overflow:clip;           /* nothing inside may scroll or shift this frame */
+    background:#04060a;
+    isolation:isolate;
+  }
+  @media (min-width:620px) and (min-height:680px){
+    #app{
+      width:auto;
+      height:min(920px,94vh);
+      height:min(920px,94dvh) !important;
+      aspect-ratio:9/16;
+      border-radius:44px;
+      box-shadow:0 40px 100px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+  }
+
+  /* ============================================================
+     ART LAYER — the two illustrations fill the screen and shake
+     ============================================================ */
+  .art{
+    position:absolute;inset:0;z-index:0;
+    transform-origin:50% 56%;
+    will-change:transform;
+    backface-visibility:hidden;
+  }
+  .bgwrap{
+    position:absolute;left:0;right:0;bottom:0;height:118%;
+    overflow:hidden;
+  }
+  .bg{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    object-position:50% 50%;
+    display:block;
+    opacity:0;
+    transform:scale(1.004);
+    transition:opacity .62s ease, filter 1.1s ease, transform 1.2s cubic-bezier(.22,1,.36,1);
+    image-rendering:auto;
+    -webkit-user-select:none;user-select:none;
+    -webkit-user-drag:none;
+    pointer-events:none;
+  }
+  .bg.on{opacity:1;}
+  .bg.zoom{transform:scale(1.035);}
+  .app-heaven .bg.on{filter:sepia(.30) saturate(1.12) brightness(1.16) contrast(1.02);}
+
+  /* colour grade: top scrim keeps the clock readable, bottom melts into the panel */
+  .grade{
+    position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(126% 56% at 50% -8%, rgba(4,8,14,.90) 0%, rgba(4,8,14,.42) 44%, rgba(4,8,14,0) 74%),
+      radial-gradient(92% 44% at 50% 102%, rgba(3,6,10,.94) 0%, rgba(3,6,10,.30) 58%, rgba(3,6,10,0) 78%),
+      linear-gradient(180deg, rgba(5,9,15,.18) 0%, rgba(4,8,14,0) 34%, rgba(4,8,14,.30) 62%, rgba(3,7,12,.82) 88%, rgba(3,6,10,.95) 100%);
+    transition:opacity 1s ease;
+  }
+  .app-heaven .grade{
+    background:
+      radial-gradient(120% 60% at 50% -6%, rgba(60,42,16,.55) 0%, rgba(40,26,10,.18) 50%, rgba(30,18,6,0) 76%),
+      radial-gradient(92% 44% at 50% 102%, rgba(42,28,8,.85) 0%, rgba(30,18,6,.22) 58%, rgba(30,18,6,0) 78%),
+      linear-gradient(180deg, rgba(80,54,18,.10) 0%, rgba(60,38,12,.16) 60%, rgba(40,24,6,.62) 92%, rgba(34,20,5,.86) 100%);
+  }
+  .vignette{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(118% 86% at 50% 52%, rgba(0,0,0,0) 46%, rgba(0,0,0,.34) 82%, rgba(0,0,0,.62) 100%);
+  }
+
+  /* red warning pulse, driven by how many things are still undone */
+  .pulse{
+    position:absolute;inset:0;pointer-events:none;
+    opacity:calc(var(--urg) * .9);
+    background:
+      radial-gradient(120% 74% at 50% 54%, rgba(255,60,36,0) 40%, rgba(255,52,30,.20) 74%, rgba(255,34,20,.52) 100%);
+    mix-blend-mode:screen;
+    animation:warnPulse 1.35s ease-in-out infinite;
+  }
+  @keyframes warnPulse{
+    0%,100%{opacity:calc(var(--urg) * .30);}
+    50%    {opacity:calc(var(--urg) * 1.05);}
+  }
+  .pulse.run{animation-duration:1.05s;}
+
+  .flash{
+    position:absolute;inset:0;pointer-events:none;opacity:0;
+    background:radial-gradient(circle at 50% 46%, rgba(255,238,214,.85) 0%, rgba(255,138,92,.34) 42%, rgba(255,90,50,0) 74%);
+    mix-blend-mode:screen;
+  }
+
+  #fx{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    pointer-events:auto;
+    touch-action:manipulation;
+    cursor:pointer;
+  }
+
+  /* ============================================================
+     HUD
+     ============================================================ */
+  .hud{
+    position:absolute;left:0;right:0;top:0;z-index:6;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    padding:calc(11px + env(safe-area-inset-top)) 15px 0;
+    pointer-events:none;
+    transition:opacity .3s ease;
+  }
+  .hud > *{pointer-events:auto;}
+  .clock-wrap{display:flex;flex-direction:column;gap:1px;min-width:0;}
+  .date{
+    font-size:9.5px;font-weight:600;letter-spacing:.15em;
+    color:rgba(206,222,238,.62);
+    text-shadow:0 1px 8px rgba(0,0,0,.7);
+    white-space:nowrap;
+  }
+  .clock{
+    font-size:26px;font-weight:250;line-height:1;letter-spacing:-.01em;
+    color:#f4f8fd;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 2px 18px rgba(120,170,220,.35), 0 1px 3px rgba(0,0,0,.6);
+  }
+
+  .switcher{
+    display:flex;align-items:center;gap:2px;
+    padding:3px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(9,13,20,.52);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    backdrop-filter:blur(14px) saturate(140%);
+    box-shadow:0 8px 22px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.10);
+    margin-top:2px;
+  }
+  .sw{
+    display:inline-flex;align-items:center;gap:4px;
+    height:26px;padding:0 9px;
+    border:0;border-radius:999px;
+    background:transparent;
+    color:rgba(200,216,232,.60);
+    font-family:inherit;font-size:10.5px;font-weight:700;letter-spacing:-.01em;
+    cursor:pointer;white-space:nowrap;
+    touch-action:manipulation;
+    transition:background .28s ease, color .28s ease, box-shadow .28s ease;
+  }
+  .sw .ic{font-size:10px;line-height:1;opacity:.8;}
+  .sw.on{
+    background:linear-gradient(158deg, rgba(255,138,95,.95), rgba(224,69,47,.95));
+    color:#fff;
+    box-shadow:0 3px 12px rgba(255,86,58,.42), inset 0 1px 0 rgba(255,255,255,.32);
+  }
+  .app-heaven .sw.on{
+    background:linear-gradient(158deg, #ffe08e, #ffb53d);
+    color:#4a3310;
+    box-shadow:0 3px 12px rgba(255,190,66,.4), inset 0 1px 0 rgba(255,255,255,.5);
+  }
+
+  .toast{
+    position:absolute;left:50%;top:calc(62px + env(safe-area-inset-top));
+    transform:translate(-50%,-6px);
+    z-index:6;pointer-events:none;
+    padding:7px 13px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(10,15,22,.72);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    font-size:10.5px;font-weight:600;letter-spacing:.01em;
+    color:rgba(226,238,250,.86);
+    white-space:nowrap;
+    opacity:0;
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+
+  /* ============================================================
+     PANEL — dark glass todo card
+     ============================================================ */
+  .panel{
+    position:absolute;left:0;right:0;bottom:0;z-index:5;
+    display:flex;flex-direction:column;gap:7px;
+    padding:15px 14px calc(10px + env(safe-area-inset-bottom));
+    max-height:43%;
+    border-radius:27px 27px 0 0;
+    border-top:1px solid rgba(255,255,255,.15);
+    background:
+      linear-gradient(180deg, rgba(24,32,44,.62) 0%, rgba(11,16,23,.88) 54%, rgba(7,10,15,.94) 100%);
+    -webkit-backdrop-filter:blur(26px) saturate(145%);
+    backdrop-filter:blur(26px) saturate(145%);
+    box-shadow:0 -20px 46px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.11);
+    transition:background .9s ease, box-shadow .9s ease, max-height .26s ease;
+  }
+  .panel::before{
+    content:"";position:absolute;left:50%;top:6px;
+    width:34px;height:3px;margin-left:-17px;border-radius:2px;
+    background:rgba(255,255,255,.16);
+    pointer-events:none;
+  }
+  .panel::after{
+    content:"";position:absolute;left:0;right:0;top:0;height:56%;
+    border-radius:27px 27px 0 0;
+    background:radial-gradient(120% 100% at 50% 0%, rgba(120,180,230,.10), rgba(120,180,230,0) 72%);
+    pointer-events:none;
+  }
+  .app-heaven .panel{
+    background:linear-gradient(180deg, rgba(112,86,42,.66) 0%, rgba(62,46,20,.90) 54%, rgba(40,29,13,.95) 100%);
+    border-top-color:rgba(255,236,190,.34);
+    box-shadow:0 -20px 46px rgba(70,46,10,.42), inset 0 1px 0 rgba(255,240,200,.30);
+  }
+
+  .status{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;position:relative;}
+  .status-main{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .title{
+    display:flex;align-items:center;gap:7px;
+    font-size:12.5px;font-weight:700;letter-spacing:.01em;color:#e9f0f8;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .title .flame{
+    width:7px;height:7px;border-radius:2px;flex:0 0 auto;
+    background:var(--coral);
+    box-shadow:0 0 9px rgba(255,106,80,.9);
+    animation:flick 1.4s ease-in-out infinite;
+  }
+  @keyframes flick{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.25) rotate(8deg)}}
+  .app-heaven .title{color:#ffe6ad;}
+  .app-heaven .title .flame{background:var(--gold);box-shadow:0 0 10px rgba(255,207,92,.9);animation-duration:2.4s;}
+  .sub{
+    font-size:10.5px;font-weight:500;letter-spacing:.01em;
+    color:rgba(182,200,218,.66);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .app-heaven .sub{color:rgba(255,226,170,.76);}
+  .pct{
+    display:flex;align-items:baseline;flex:0 0 auto;
+    font-size:28px;font-weight:700;line-height:.84;letter-spacing:-.035em;
+    color:#ffffff;font-variant-numeric:tabular-nums;
+    text-shadow:0 0 22px rgba(255,120,90,.40);
+    transition:color .5s ease, text-shadow .5s ease;
+  }
+  .pct .unit{font-size:12.5px;font-weight:600;margin-left:2px;opacity:.55;}
+  .app-heaven .pct{color:var(--gold);text-shadow:0 0 26px rgba(255,207,92,.55);}
+
+  .bar{
+    position:relative;height:7px;border-radius:999px;overflow:hidden;
+    background:rgba(255,255,255,.09);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.6);
+  }
+  .bar-fill{
+    position:absolute;inset:0 auto 0 0;width:0%;border-radius:999px;
+    background:linear-gradient(90deg,#ff9a63 0%, #ff6a50 55%, #e0452f 100%);
+    box-shadow:0 0 14px rgba(255,110,80,.62);
+    transition:width .62s cubic-bezier(.22,1.2,.36,1), background .8s ease, box-shadow .8s ease;
+  }
+  .bar-fill::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.42) 50%,rgba(255,255,255,0));
+    transform:translateX(-100%);
+    animation:sheen 2.8s linear infinite;
+  }
+  @keyframes sheen{0%{transform:translateX(-100%)}62%,100%{transform:translateX(220%)}}
+  .app-heaven .bar-fill{background:linear-gradient(90deg,#ffe89b 0%, #ffcf5c 50%, #ffb53d 100%);box-shadow:0 0 16px rgba(255,207,92,.78);}
+
+  .add{display:flex;gap:8px;position:relative;}
+  .add input{
+    flex:1 1 auto;min-width:0;height:44px;
+    padding:0 13px;border-radius:12px;
+    border:1px solid rgba(255,255,255,.13);
+    background:rgba(255,255,255,.055);
+    color:var(--ink);font-family:inherit;
+    /* 16px keeps iOS Safari from zooming the whole page on focus */
+    font-size:16px;line-height:1.2;
+    outline:none;
+    -webkit-user-select:text !important;
+    user-select:text !important;
+    transition:border-color .2s, background .2s, box-shadow .2s;
+  }
+  .add input::placeholder{color:rgba(182,200,218,.44);}
+  .add input:focus{border-color:rgba(255,120,90,.6);background:rgba(255,255,255,.085);box-shadow:0 0 0 3px rgba(255,106,80,.10);}
+  .app-heaven .add input:focus{border-color:rgba(255,207,92,.6);box-shadow:0 0 0 3px rgba(255,207,92,.12);}
+  .add button{
+    flex:0 0 auto;width:48px;height:44px;
+    border:0;border-radius:12px;cursor:pointer;
+    touch-action:manipulation;
+    -webkit-user-select:none;user-select:none;
+    background:linear-gradient(158deg,#ff8a5f,#ff5a3d);
+    color:#fff;font-size:21px;font-weight:600;line-height:1;
+    box-shadow:0 7px 18px rgba(255,86,58,.34), inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .12s ease, filter .2s;
+  }
+  .add button:active{transform:scale(.93);filter:brightness(1.06);}
+  .app-heaven .add button{background:linear-gradient(158deg,#ffe08e,#ffbe42);color:#4a3310;}
+
+  .list{
+    list-style:none;margin:0;padding:0;
+    display:flex;flex-direction:column;gap:5px;
+    max-height:196px;
+    overflow-y:auto;overscroll-behavior:contain;
+    flex:1 1 auto;min-height:0;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  }
+  .list::-webkit-scrollbar{width:0;height:0;}
+  .task{
+    display:flex;align-items:center;gap:9px;
+    padding:6px 9px;border-radius:12px;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.055);
+    cursor:pointer;
+    transition:background .22s, border-color .22s, transform .12s, opacity .3s;
+  }
+  .task.fresh{animation:pop .28s cubic-bezier(.22,1.3,.4,1);}
+  @keyframes pop{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
+  .task:active{transform:scale(.988);background:rgba(255,255,255,.075);}
+  .task .box{
+    flex:0 0 auto;width:18px;height:18px;border-radius:6px;
+    border:1.5px solid rgba(255,255,255,.26);
+    display:grid;place-items:center;
+    transition:all .22s cubic-bezier(.22,1.3,.4,1);
+    background:rgba(255,255,255,.02);
+  }
+  .task .box svg{width:12px;height:12px;opacity:0;transform:scale(.5);transition:all .22s cubic-bezier(.22,1.3,.4,1);}
+  .task.done .box{
+    border-color:transparent;
+    background:linear-gradient(158deg,#ff8a5f,#ff5a3d);
+    box-shadow:0 0 12px rgba(255,106,80,.45);
+  }
+  .app-heaven .task.done .box{background:linear-gradient(158deg,#ffe08e,#ffbe42);box-shadow:0 0 12px rgba(255,207,92,.5);}
+  .task.done .box svg{opacity:1;transform:scale(1);}
+  .task .label{
+    flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.3;color:#dde6f1;
+    word-break:break-word;transition:color .25s;
+  }
+  .task.done .label{color:rgba(178,194,212,.42);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.34);text-decoration-thickness:1.5px;}
+  .task .del{
+    flex:0 0 auto;width:24px;height:22px;border:0;border-radius:8px;
+    background:transparent;color:rgba(255,255,255,.30);
+    font-size:15px;line-height:1;cursor:pointer;
+    display:grid;place-items:center;font-family:inherit;
+    transition:color .2s, background .2s, opacity .2s;
+  }
+  .task .del:hover,.task .del:active{color:#ff8f7a;background:rgba(255,106,80,.12);}
+  .empty{
+    padding:16px 4px;text-align:center;font-size:11.5px;line-height:1.6;
+    color:rgba(182,200,218,.46);
+  }
+
+  /* ============================================================
+     HEAVEN
+     ============================================================ */
+  .heaven{
+    position:absolute;inset:0;z-index:40;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;overflow:clip;
+    opacity:0;pointer-events:none;
+    background:
+      radial-gradient(120% 80% at 50% 26%, rgba(255,240,196,.30) 0%, rgba(255,214,132,.12) 42%, rgba(24,16,6,0) 74%),
+      radial-gradient(90% 60% at 50% 100%, rgba(255,226,160,.24) 0%, rgba(30,20,8,0) 70%),
+      linear-gradient(180deg, rgba(8,7,10,.55) 0%, rgba(12,9,6,.72) 55%, rgba(6,5,8,.88) 100%);
+    -webkit-backdrop-filter:blur(3px) saturate(120%);
+    backdrop-filter:blur(3px) saturate(120%);
+    transition:opacity .7s ease;
+  }
+  .heaven.on{opacity:1;pointer-events:auto;}
+  .heaven canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .heaven-inner{
+    position:relative;z-index:2;
+    display:flex;flex-direction:column;align-items:center;gap:9px;
+    padding:0 30px calc(6px + env(safe-area-inset-bottom));
+    text-align:center;
+    transform:translateY(14px) scale(.96);
+    opacity:0;
+    transition:transform .8s cubic-bezier(.22,1.1,.36,1), opacity .6s ease;
+  }
+  .heaven.on .heaven-inner{transform:none;opacity:1;}
+  .medal{
+    width:58px;height:58px;border-radius:50%;
+    display:grid;place-items:center;
+    background:radial-gradient(circle at 36% 30%, #fff6d2, #ffcf5c 52%, #e79f24 100%);
+    box-shadow:0 0 0 1px rgba(255,240,190,.6), 0 0 34px rgba(255,196,72,.62), inset 0 -3px 8px rgba(150,90,10,.35);
+    animation:medalPulse 2.6s ease-in-out infinite;
+  }
+  @keyframes medalPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 1px rgba(255,240,190,.6),0 0 24px rgba(255,196,72,.5),inset 0 -3px 8px rgba(150,90,10,.35)}50%{transform:scale(1.05);box-shadow:0 0 0 1px rgba(255,246,214,.85),0 0 44px rgba(255,206,92,.85),inset 0 -3px 8px rgba(150,90,10,.35)}}
+  .medal svg{width:28px;height:28px;}
+  .kicker{
+    font-size:9.5px;font-weight:800;letter-spacing:.34em;
+    color:rgba(255,226,166,.82);
+    text-indent:.34em;
+  }
+  .heaven-title{
+    margin:2px 0 0;
+    font-size:38px;line-height:1.06;font-weight:800;letter-spacing:-.045em;
+    background:linear-gradient(180deg,#fffdf3 0%, #ffe9a8 46%, #ffc247 100%);
+    -webkit-background-clip:text;background-clip:text;
+    color:transparent;
+    text-shadow:0 6px 30px rgba(255,190,70,.35);
+  }
+  .heaven-sub{
+    margin:2px 0 0;
+    font-size:11.5px;line-height:1.6;font-weight:500;
+    color:rgba(255,236,200,.76);
+  }
+  .heaven-btn{
+    margin-top:10px;
+    height:40px;padding:0 20px;
+    border:1px solid rgba(255,226,166,.35);
+    border-radius:999px;
+    background:rgba(255,236,190,.10);
+    color:#ffe6ad;font-family:inherit;font-size:11.5px;font-weight:700;
+    letter-spacing:.02em;
+    cursor:pointer;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    transition:transform .14s ease, background .2s;
+  }
+  .heaven-btn:active{transform:scale(.96);background:rgba(255,236,190,.18);}
+
+  /* ============================================================
+     loading veil
+     ============================================================ */
+  .veil{
+    position:absolute;inset:0;z-index:30;
+    display:flex;align-items:center;justify-content:center;
+    background:#04060a;
+    transition:opacity .7s ease;
+  }
+  .veil.done{opacity:0;pointer-events:none;}
+  .veil span{
+    font-size:11px;font-weight:600;letter-spacing:.18em;
+    color:rgba(255,150,120,.75);
+    animation:veilBlink 1.2s ease-in-out infinite;
+  }
+  @keyframes veilBlink{0%,100%{opacity:.35}50%{opacity:1}}
+
+  /* keyboard open: give the card room, dim the art behind it */
+  .kbopen .panel{max-height:76%;}
+  .kbopen .hud{opacity:.28;}
+
+  @media (max-height:720px){
+    .hud{padding-top:calc(7px + env(safe-area-inset-top));}
+    .clock{font-size:22px;}
+    .date{font-size:9px;}
+    .sw{height:24px;padding:0 8px;font-size:10px;}
+    .panel{padding:12px 12px calc(7px + env(safe-area-inset-bottom));gap:6px;max-height:46%;}
+    .task{padding:5px 9px;}
+    .add input,.add button{height:38px;}
+    .pct{font-size:24px;}
+    .list{max-height:170px;}
+    .title{font-size:12px;}
+    .heaven-title{font-size:32px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .bar-fill::after,.title .flame,.pulse,.medal{animation:none !important;}
+    .bg{transition:opacity .3s ease;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="art" id="art">
+    <div class="bgwrap">
+      <img class="bg on" id="bgPush" src="../assets/sloth-hell-pixel-push-120deg.png"
+           alt="나태지옥 — 거대한 돌기둥을 함께 미는 장면" draggable="false" decoding="async">
+      <img class="bg" id="bgRun" src="../assets/sloth-hell-pixel-run-120deg-left.png"
+           alt="나태지옥 — 돌기둥에서 달아나는 장면" draggable="false" decoding="async">
+    </div>
+    <div class="grade"></div>
+    <div class="vignette"></div>
+    <div class="pulse" id="pulse"></div>
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <div class="flash" id="flash"></div>
+  </div>
+
+  <header class="hud">
+    <div class="clock-wrap">
+      <div class="date" id="dateText">—</div>
+      <div class="clock" id="timeText">--:--</div>
+    </div>
+    <div class="switcher" id="switcher" role="group" aria-label="배경 장면 전환">
+      <button type="button" class="sw on" data-mode="push" aria-pressed="true">
+        <span class="ic" aria-hidden="true">▶▶</span><span>미는 중</span>
+      </button>
+      <button type="button" class="sw" data-mode="run" aria-pressed="false">
+        <span class="ic" aria-hidden="true">◀◀</span><span>달리는 중</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="toast" id="toast">장면을 눌러도 바뀌어요</div>
+
+  <section class="panel" id="panel">
+    <div class="status">
+      <div class="status-main">
+        <div class="title"><span class="flame"></span><span id="statusTitle">나태지옥 탈출 중</span></div>
+        <div class="sub" id="statusSub">밀린 일 3건 · 멈추면 돌기둥에 깔려요!</div>
+      </div>
+      <div class="pct"><span id="pctNum">40</span><span class="unit">%</span></div>
+    </div>
+    <div class="bar" role="progressbar" aria-label="완료율" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40" id="bar">
+      <div class="bar-fill" id="barFill" style="width:40%"></div>
+    </div>
+    <form class="add" id="addForm" autocomplete="off" action="#" onsubmit="return false;">
+      <input id="newTask" name="task" type="text" maxlength="80"
+             placeholder="오늘의 할 일을 적어 넣어요" aria-label="새 할 일"
+             enterkeyhint="done" inputmode="text"
+             autocomplete="off" autocorrect="off" autocapitalize="none"
+             spellcheck="false" autofocus="false">
+      <button type="submit" id="addBtn" aria-label="할 일 추가">+</button>
+    </form>
+    <ul class="list" id="list" aria-label="할 일 목록"></ul>
+    <noscript>
+      <div class="empty" style="color:#ffb59f;">이 미리보기에서는 스크립트가 막혀 있어요. Safari에서 열어 주세요.</div>
+    </noscript>
+  </section>
+
+  <div class="heaven" id="heaven" aria-hidden="true">
+    <canvas id="confetti" aria-hidden="true"></canvas>
+    <div class="heaven-inner">
+      <div class="medal" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M20 6L9.2 16.8 4 11.6" fill="none" stroke="#5a3d06" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kicker">MISSION SUCCESS</div>
+      <h1 class="heaven-title">오늘도<br>천국행!</h1>
+      <p class="heaven-sub">밀린 일 0건 · 오늘은 여기서 좀 쉬어요</p>
+      <button type="button" class="heaven-btn" id="heavenClose">천국에서 내려가기</button>
+    </div>
+  </div>
+
+  <div class="veil" id="veil"><span>지옥으로 내려가는 중…</span></div>
+</div>
+
+<script>
+window.__slothErrors = [];
+window.addEventListener('error', function (e) {
+  try { window.__slothErrors.push(String(e.message)); } catch (_) {}
+});
+</script>
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     1. DATA
+     ============================================================ */
+  var KEY = 'slothHellTodo.v2b';
+  var MODE_KEY = 'slothHellTodo.v2b.mode';
+  var HINT_KEY = 'slothHellTodo.v2b.hint';
+  var SEED = [
+    { text: '장보기', done: true },
+    { text: '메일 확인', done: true },
+    { text: '운동 30분', done: false },
+    { text: '물 마시기', done: false },
+    { text: '책 읽기', done: false }
+  ];
+
+  var tasks = [];
+  var seq = 0;
+  var memStore = {};
+  function nid() { seq += 1; return 't' + Date.now().toString(36) + seq.toString(36); }
+
+  /* localStorage can throw (private mode, quota, embedded webview) — fall back to memory */
+  function storeSet(k, v) {
+    try { localStorage.setItem(k, v); } catch (e) { memStore[k] = v; }
+  }
+  function storeGet(k) {
+    try {
+      var v = localStorage.getItem(k);
+      return v === null ? (memStore[k] === undefined ? null : memStore[k]) : v;
+    } catch (e) {
+      return memStore[k] === undefined ? null : memStore[k];
+    }
+  }
+
+  function persist() {
+    try { storeSet(KEY, JSON.stringify(tasks)); } catch (e) {}
+  }
+
+  function load() {
+    var raw = storeGet(KEY);
+    if (raw) {
+      try {
+        var arr = JSON.parse(raw);
+        if (Object.prototype.toString.call(arr) === '[object Array]') {
+          var out = [];
+          for (var i = 0; i < arr.length; i++) {
+            var o = arr[i];
+            if (!o || typeof o.text !== 'string') continue;
+            var t = o.text.replace(/\s+$/, '');
+            if (!t) continue;
+            out.push({
+              id: (typeof o.id === 'string' && o.id) ? o.id : nid(),
+              text: t.slice(0, 140),
+              done: !!o.done
+            });
+          }
+          tasks = out;
+          return;
+        }
+      } catch (e) {}
+    }
+    tasks = SEED.map(function (o) { return { id: nid(), text: o.text, done: o.done }; });
+    persist();
+  }
+
+  function stats() {
+    var total = tasks.length, done = 0;
+    for (var i = 0; i < total; i++) if (tasks[i].done) done += 1;
+    var rem = total - done;
+    return { total: total, done: done, rem: rem, pct: total ? Math.round(done / tasks.length * 100) : 0 };
+  }
+
+  /* ============================================================
+     2. DOM + UI
+     ============================================================ */
+  var app = document.getElementById('app');
+  var art = document.getElementById('art');
+  var dateEl = document.getElementById('dateText');
+  var timeEl = document.getElementById('timeText');
+  var statusTitle = document.getElementById('statusTitle');
+  var statusSub = document.getElementById('statusSub');
+  var pctNum = document.getElementById('pctNum');
+  var barEl = document.getElementById('bar');
+  var barFill = document.getElementById('barFill');
+  var listEl = document.getElementById('list');
+  var formEl = document.getElementById('addForm');
+  var inputEl = document.getElementById('newTask');
+  var switcher = document.getElementById('switcher');
+  var toastEl = document.getElementById('toast');
+  var heavenEl = document.getElementById('heaven');
+  var heavenClose = document.getElementById('heavenClose');
+  var flashEl = document.getElementById('flash');
+  var veil = document.getElementById('veil');
+  var bgPush = document.getElementById('bgPush');
+  var bgRun = document.getElementById('bgRun');
+
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9.2 16.8 4 11.6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  var seen = {};
+  function renderList() {
+    var keep = listEl.scrollTop;
+    listEl.innerHTML = '';
+    if (!tasks.length) {
+      var empty = document.createElement('li');
+      empty.className = 'empty';
+      empty.textContent = '할 일을 하나 적어 넣으면, 그때부터 지옥이 시작돼요.';
+      listEl.appendChild(empty);
+      return;
+    }
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      var li = document.createElement('li');
+      li.className = 'task' + (t.done ? ' done' : '') + (seen[t.id] ? '' : ' fresh');
+      seen[t.id] = 1;
+      li.dataset.id = t.id;
+      li.setAttribute('role', 'checkbox');
+      li.setAttribute('aria-checked', t.done ? 'true' : 'false');
+      li.tabIndex = 0;
+
+      var box = document.createElement('span');
+      box.className = 'box';
+      box.innerHTML = CHECK_SVG;
+
+      var label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = t.text;
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'del';
+      del.setAttribute('aria-label', '삭제');
+      del.textContent = '✕';
+
+      li.appendChild(box);
+      li.appendChild(label);
+      li.appendChild(del);
+      frag.appendChild(li);
+    }
+    listEl.appendChild(frag);
+    listEl.scrollTop = keep;
+  }
+
+  var heavenShown = false;
+
+  function updateUI() {
+    var s = stats();
+    var heaven = s.total > 0 && s.rem === 0;
+    app.classList.toggle('app-heaven', heaven);
+
+    if (heaven) {
+      statusTitle.textContent = '오늘도 천국행! MISSION SUCCESS';
+      statusSub.textContent = '밀린 일 0건 · 오늘은 여기서 좀 쉬어요';
+    } else {
+      statusTitle.textContent = '나태지옥 탈출 중';
+      if (!s.total) {
+        statusSub.textContent = '할 일을 하나 적어 넣으면 지옥이 시작돼요';
+      } else if (s.rem === 1) {
+        statusSub.textContent = '밀린 일 1건 · 한 칸만 더 가면 천국이에요!';
+      } else {
+        statusSub.textContent = '밀린 일 ' + s.rem + '건 · 멈추면 돌기둥에 깔려요!';
+      }
+    }
+    pctNum.textContent = String(s.pct);
+    barFill.style.width = s.pct + '%';
+    barEl.setAttribute('aria-valuenow', String(s.pct));
+
+    if (heaven && !heavenShown) {
+      heavenShown = true;
+      openHeaven();
+    } else if (!heaven) {
+      heavenShown = false;
+      if (heavenEl.classList.contains('on')) closeHeaven();
+    }
+  }
+
+  function commit() {
+    persist();
+    renderList();
+    updateUI();
+  }
+
+  function toggleTask(id) {
+    for (var i = 0; i < tasks.length; i++) {
+      if (tasks[i].id === id) {
+        tasks[i].done = !tasks[i].done;
+        if (tasks[i].done) burst(10);
+        haptic(tasks[i].done ? 12 : 8);
+        break;
+      }
+    }
+    commit();
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(function (t) { return t.id !== id; });
+    commit();
+  }
+
+  listEl.addEventListener('click', function (e) {
+    var li = e.target.closest ? e.target.closest('.task') : null;
+    if (!li) {
+      var n = e.target;
+      while (n && n !== listEl) { if (n.classList && n.classList.contains('task')) { li = n; break; } n = n.parentNode; }
+    }
+    if (!li) return;
+    if (e.target.classList && e.target.classList.contains('del')) { deleteTask(li.dataset.id); return; }
+    if (li.contains(e.target) && e.target.closest && e.target.closest('.del')) { deleteTask(li.dataset.id); return; }
+    toggleTask(li.dataset.id);
+  });
+
+  listEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    var li = e.target;
+    if (!li.classList || !li.classList.contains('task')) return;
+    e.preventDefault();
+    toggleTask(li.dataset.id);
+  });
+
+  /* ---------- adding a task: works with IME (한글 조합), Enter and the + button ---------- */
+  var composing = false;
+  var pendingSubmit = false;
+
+  function haptic(p) {
+    if (!navigator.vibrate) return;
+    try {
+      if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+      navigator.vibrate(p);
+    } catch (e) {}
+  }
+
+  function addTask() {
+    var v = (inputEl.value || '').replace(/^\s+|\s+$/g, '');
+    if (!v) { try { inputEl.focus(); } catch (e0) {} return false; }
+    tasks.push({ id: nid(), text: v.slice(0, 80), done: false });
+    inputEl.value = '';
+    commit();
+    listEl.scrollTop = listEl.scrollHeight;
+    haptic(10);
+    return true;
+  }
+
+  inputEl.addEventListener('compositionstart', function () { composing = true; });
+  inputEl.addEventListener('compositionend', function () {
+    composing = false;
+    if (pendingSubmit) { pendingSubmit = false; addTask(); }
+  });
+
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    /* during a Korean IME composition the value is not committed yet — wait for compositionend */
+    if (composing) { pendingSubmit = true; return; }
+    addTask();
+  });
+
+  inputEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.keyCode !== 13) return;
+    e.preventDefault();
+    if (e.isComposing || composing || e.keyCode === 229) { pendingSubmit = true; return; }
+    addTask();
+  });
+
+  /* iOS: keep the field visible above the keyboard */
+  inputEl.addEventListener('focus', function () {
+    setTimeout(function () {
+      try { inputEl.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e3) {
+        try { inputEl.scrollIntoView(); } catch (e4) {}
+      }
+    }, 280);
+  });
+
+  /* clock */
+  var dateFmt = null;
+  try { dateFmt = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }); } catch (e) {}
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+  function tickClock() {
+    var d = new Date();
+    dateEl.textContent = dateFmt ? dateFmt.format(d) : (d.getMonth() + 1) + '월 ' + d.getDate() + '일';
+    timeEl.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  tickClock();
+  setInterval(tickClock, 15000);
+
+  /* ============================================================
+     3. SCENE MODE ( 미는 버전 ↔ 달리고 깔리는 버전 )
+     ============================================================ */
+  var mode = 'push';
+  var modeBtns = switcher.querySelectorAll('.sw');
+
+  function setMode(m, save) {
+    mode = (m === 'run') ? 'run' : 'push';
+    var isRun = mode === 'run';
+    bgPush.classList.toggle('on', !isRun);
+    bgRun.classList.toggle('on', isRun);
+    for (var i = 0; i < modeBtns.length; i++) {
+      var on = modeBtns[i].getAttribute('data-mode') === mode;
+      modeBtns[i].classList.toggle('on', on);
+      modeBtns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    pulseEl.classList.toggle('run', isRun);
+    if (save) { try { storeSet(MODE_KEY, mode); } catch (e) {} }
+    flash = 1;
+    burst(isRun ? 22 : 14);
+    haptic(8);
+  }
+
+  switcher.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.sw') : null;
+    if (!b) return;
+    var m = b.getAttribute('data-mode');
+    if (m === mode) return;
+    setMode(m, true);
+  });
+
+  /* tapping the artwork also flips the scene */
+  var stage = document.getElementById('fx');
+  stage.addEventListener('click', function () { setMode(mode === 'run' ? 'push' : 'run', true); });
+
+  /* first-visit hint */
+  function showHint() {
+    if (storeGet(HINT_KEY) === '1') return;
+    setTimeout(function () {
+      toastEl.classList.add('show');
+      setTimeout(function () { toastEl.classList.remove('show'); }, 3200);
+    }, 1400);
+    try { storeSet(HINT_KEY, '1'); } catch (e) {}
+  }
+
+  /* ============================================================
+     4. PIXEL FX ENGINE
+     ============================================================ */
+  var fx = document.getElementById('fx');
+  var fctx = fx.getContext('2d');
+  var pulseEl = document.getElementById('pulse');
+  var FXW = 390, FXH = 844, FXD = 2;
+  var reduce = false;
+  try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  var IMG_W = 941, IMG_H = 1672, WRAP = 1.18;
+  var ARENA = { cx: 195, cy: 420, rx: 130, ry: 52 };
+
+  /* the arena ellipse, in fractions of the source illustration */
+  var ARENA_F = { x: 0.585, y: 0.545, rx: 0.335, ry: 0.115 };
+
+  function mapArena() {
+    var W = app.clientWidth, H = app.clientHeight;
+    var bw = W, bh = H * WRAP, by = H - bh;
+    var s = Math.max(bw / IMG_W, bh / IMG_H);
+    var dw = IMG_W * s, dh = IMG_H * s;
+    var ox = (bw - dw) / 2, oy = by + (bh - dh) / 2;
+    ARENA.cx = ox + ARENA_F.x * dw;
+    ARENA.cy = oy + ARENA_F.y * dh;
+    ARENA.rx = ARENA_F.rx * dw;
+    ARENA.ry = ARENA_F.ry * dh;
+  }
+
+  function glowSprite(r, g, b) {
+    var c = document.createElement('canvas');
+    c.width = c.height = 64;
+    var x = c.getContext('2d');
+    var gd = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gd.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',1)');
+    gd.addColorStop(0.42, 'rgba(' + r + ',' + g + ',' + b + ',0.30)');
+    gd.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0)');
+    x.fillStyle = gd;
+    x.fillRect(0, 0, 64, 64);
+    return c;
+  }
+  var GLOW_WARM = glowSprite(232, 138, 82);
+  var GLOW_RED = glowSprite(255, 70, 42);
+  var GLOW_GOLD = glowSprite(255, 214, 120);
+
+  function fxResize() {
+    var W = app.clientWidth, H = app.clientHeight;
+    FXW = Math.max(1, Math.round(W));
+    FXH = Math.max(1, Math.round(H));
+    FXD = Math.min(Math.max(window.devicePixelRatio || 1, 1), 2);
+    fx.width = Math.round(FXW * FXD);
+    fx.height = Math.round(FXH * FXD);
+    fctx.setTransform(FXD, 0, 0, FXD, 0, 0);
+    fctx.imageSmoothingEnabled = false;
+    mapArena();
+    fxDirty = true;
+  }
+
+  var parts = [];
+  var MAXP = 96;
+
+  function pushPart(p) {
+    if (parts.length >= MAXP) { parts.shift(); }
+    parts.push(p);
+  }
+
+  function emitDust() {
+    pushPart({
+      k: 0,
+      x: Math.random() * FXW,
+      y: FXH * (0.40 + Math.random() * 0.55),
+      vx: (Math.random() - 0.5) * 9,
+      vy: -(7 + Math.random() * 16) * (0.7 + urgency),
+      life: 1.9 + Math.random() * 2.6,
+      age: 0,
+      s: Math.random() < 0.3 ? 2 : 1
+    });
+  }
+
+  function emitEmber() {
+    var a = Math.random() * Math.PI * 2;
+    var rr = 0.55 + Math.random() * 0.55;
+    pushPart({
+      k: 1,
+      x: ARENA.cx + Math.cos(a) * ARENA.rx * rr,
+      y: ARENA.cy + Math.sin(a) * ARENA.ry * rr,
+      vx: (Math.random() - 0.5) * 12,
+      vy: -(22 + Math.random() * 48) * (0.6 + urgency * 1.3),
+      life: 0.7 + Math.random() * 1.6,
+      age: 0,
+      s: 1,
+      f: Math.random()
+    });
+  }
+
+  function emitSweat() {
+    var a = -Math.PI * 0.5 + (Math.random() - 0.5) * 1.1;
+    pushPart({
+      k: 2,
+      x: ARENA.cx + Math.cos(a) * ARENA.rx * 0.82,
+      y: ARENA.cy + Math.sin(a) * ARENA.ry * 0.5 - 6,
+      vx: (Math.random() - 0.5) * 52,
+      vy: -(34 + Math.random() * 44),
+      life: 0.55 + Math.random() * 0.55,
+      age: 0,
+      s: 1
+    });
+  }
+
+  function burst(n) {
+    if (reduce) n = Math.round(n * 0.4);
+    for (var i = 0; i < n; i++) emitEmber();
+  }
+
+  var accDust = 0, accEmber = 0, accSweat = 0;
+  var urgency = 0, flash = 0, heavenMix = 0;
+  var fxDirty = true;
+
+  function drawFX(t, dt) {
+    if (!fxDirty) {
+      fctx.clearRect(0, 0, FXW, FXH);
+    } else {
+      fxDirty = false;
+      fctx.clearRect(0, 0, FXW, FXH);
+    }
+
+    /* warm light pooling on the circular slab */
+    var glowA = 0.10 + urgency * 0.16;
+    fctx.globalAlpha = glowA;
+    fctx.drawImage(GLOW_WARM, ARENA.cx - ARENA.rx * 1.5, ARENA.cy - ARENA.ry * 2.0, ARENA.rx * 3.0, ARENA.ry * 4.0);
+    if (urgency > 0.15) {
+      var beat = 0.5 + 0.5 * Math.sin(t * (mode === 'run' ? 5.6 : 4.2));
+      fctx.globalAlpha = urgency * 0.13 * (0.45 + beat * 0.55);
+      fctx.drawImage(GLOW_RED, ARENA.cx - ARENA.rx * 1.7, ARENA.cy - ARENA.ry * 2.2, ARENA.rx * 3.4, ARENA.ry * 4.4);
+    }
+    fctx.globalAlpha = 1;
+
+    /* emission rates scale with how much is still undone */
+    var rate = reduce ? 0.35 : 1;
+    accDust += dt * (7 + urgency * 6) * rate;
+    accEmber += dt * (1.2 + urgency * 13) * rate;
+    accSweat += dt * (urgency * 6 + (mode === 'run' ? urgency * 5 : 0)) * rate;
+    while (accDust >= 1) { accDust -= 1; emitDust(); }
+    while (accEmber >= 1) { accEmber -= 1; emitEmber(); }
+    while (accSweat >= 1) { accSweat -= 1; emitSweat(); }
+
+    var i, p, k, al;
+    for (i = parts.length - 1; i >= 0; i--) {
+      p = parts[i];
+      p.age += dt;
+      if (p.age >= p.life) { parts.splice(i, 1); continue; }
+
+      if (p.k === 1) {
+        p.vy += 8 * dt;
+        p.vx += Math.sin(p.age * 7 + p.x) * 6 * dt;
+      } else if (p.k === 2) {
+        p.vy += 190 * dt;
+        p.vx *= (1 - 1.1 * dt);
+      } else {
+        p.vx += Math.sin(p.age * 1.7 + p.x * 0.05) * 5 * dt;
+        p.vy *= (1 - 0.4 * dt);
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (p.y < -12 || p.y > FXH + 12) { parts.splice(i, 1); continue; }
+
+      k = 1 - p.age / p.life;
+      if (p.k === 0) {
+        al = 0.30 * Math.min(1, k * 2.2) * (0.55 + urgency * 0.6);
+        fctx.fillStyle = 'rgba(198,216,236,' + al.toFixed(3) + ')';
+        fctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);
+      } else if (p.k === 1) {
+        var flick = (Math.sin(p.age * 24 + p.f * 30) + 1) * 0.5;
+        al = 0.85 * Math.min(1, k * 2.6) * (0.55 + flick * 0.45);
+        fctx.fillStyle = p.f > 0.45
+          ? 'rgba(255,178,84,' + al.toFixed(3) + ')'
+          : 'rgba(255,96,58,' + al.toFixed(3) + ')';
+        fctx.fillRect(Math.round(p.x), Math.round(p.y), 1, p.s + (flick > 0.6 ? 1 : 0));
+      } else {
+        al = 0.9 * Math.min(1, k * 2.4);
+        fctx.fillStyle = 'rgba(150,232,255,' + al.toFixed(3) + ')';
+        fctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 2);
+      }
+    }
+
+    /* heaven: gold motes drifting up through the light */
+    if (heavenMix > 0.02) {
+      fctx.globalAlpha = Math.min(1, heavenMix);
+      fctx.drawImage(GLOW_GOLD, ARENA.cx - ARENA.rx * 1.6, ARENA.cy - ARENA.ry * 2.4, ARENA.rx * 3.2, ARENA.ry * 5.0);
+      fctx.globalAlpha = 1;
+    }
+  }
+
+  function shakeNow(t) {
+    if (reduce) { art.style.transform = 'none'; return; }
+    var amp = (0.35 + urgency * 3.1) * (mode === 'run' ? 1.35 : 1);
+    /* heartbeat thump grows with the backlog */
+    var hb = Math.pow(Math.max(0, Math.sin(t * Math.PI * 0.85)), 10) * urgency;
+    var x = (Math.sin(t * 47.3) * 0.62 + Math.sin(t * 73.1) * 0.38) * amp;
+    var y = (Math.cos(t * 51.7) * 0.55 + Math.sin(t * 89.9) * 0.45) * amp + hb * 2.4;
+    var sc = 1.035 + hb * 0.006 + flash * 0.012;
+    art.style.transform = 'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0) scale(' + sc.toFixed(4) + ')';
+  }
+
+  /* ============================================================
+     5. HEAVEN OVERLAY + CONFETTI
+     ============================================================ */
+  var cfCvs = document.getElementById('confetti');
+  var cfCtx = cfCvs.getContext('2d');
+  var cfParts = [];
+  var cfOn = false, cfW = 0, cfH = 0, cfD = 2;
+
+  function cfResize() {
+    cfW = Math.max(1, Math.round(app.clientWidth));
+    cfH = Math.max(1, Math.round(app.clientHeight));
+    cfD = Math.min(Math.max(window.devicePixelRatio || 1, 1), 2);
+    cfCvs.width = Math.round(cfW * cfD);
+    cfCvs.height = Math.round(cfH * cfD);
+    cfCtx.setTransform(cfD, 0, 0, cfD, 0, 0);
+  }
+
+  function openHeaven() {
+    cfResize();
+    cfParts.length = 0;
+    for (var i = 0; i < 64; i++) {
+      cfParts.push({
+        x: Math.random() * cfW,
+        y: -20 - Math.random() * cfH * 0.9,
+        vy: 26 + Math.random() * 52,
+        vx: (Math.random() - 0.5) * 22,
+        s: Math.random() < 0.35 ? 3 : 2,
+        ph: Math.random() * 6.28,
+        c: Math.random() < 0.5 ? 'rgba(255,206,92,' : (Math.random() < 0.6 ? 'rgba(255,244,205,' : 'rgba(255,168,96,')
+      });
+    }
+    cfOn = true;
+    heavenEl.classList.add('on');
+    heavenEl.setAttribute('aria-hidden', 'false');
+    haptic([16, 40, 26]);
+  }
+
+  function closeHeaven() {
+    heavenEl.classList.remove('on');
+    heavenEl.setAttribute('aria-hidden', 'true');
+    setTimeout(function () { if (!heavenEl.classList.contains('on')) cfOn = false; }, 800);
+  }
+
+  heavenClose.addEventListener('click', function (e) {
+    e.stopPropagation();
+    closeHeaven();
+  });
+  heavenEl.addEventListener('click', function (e) {
+    if (e.target === heavenEl || e.target === cfCvs) closeHeaven();
+  });
+
+  function drawConfetti(t, dt) {
+    if (!cfOn) {
+      if (cfCtx) cfCtx.clearRect(0, 0, cfW, cfH);
+      return;
+    }
+    cfCtx.clearRect(0, 0, cfW, cfH);
+    for (var i = 0; i < cfParts.length; i++) {
+      var p = cfParts[i];
+      p.y += p.vy * dt;
+      p.x += (p.vx + Math.sin(t * 1.7 + p.ph) * 26) * dt;
+      if (p.y > cfH + 12) { p.y = -12; p.x = Math.random() * cfW; }
+      if (p.x < -12) p.x = cfW + 12;
+      if (p.x > cfW + 12) p.x = -12;
+      var tw = 0.45 + 0.55 * Math.abs(Math.sin(t * 2.4 + p.ph));
+      cfCtx.fillStyle = p.c + tw.toFixed(2) + ')';
+      cfCtx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s + (tw > 0.75 ? 1 : 0));
+    }
+  }
+
+  /* ============================================================
+     6. MAIN LOOP
+     ============================================================ */
+  var last = 0;
+
+  function loop(ts) {
+    if (document.hidden) { last = 0; requestAnimationFrame(loop); return; }
+    var t = ts / 1000;
+    var dt = last ? (ts - last) / 1000 : 0.016;
+    last = ts;
+    if (dt > 0.06) dt = 0.06;
+
+    var s = stats();
+    var targetUrg = s.total ? s.rem / s.total : 0;
+    urgency += (targetUrg - urgency) * Math.min(1, dt * 4.2);
+
+    var heavenTarget = (s.total > 0 && s.rem === 0) ? 1 : 0;
+    heavenMix += (heavenTarget - heavenMix) * Math.min(1, dt * 2.2);
+
+    app.style.setProperty('--urg', Math.max(0, Math.min(1, urgency)).toFixed(3));
+
+    if (flash > 0) {
+      flash = Math.max(0, flash - dt * 2.6);
+      flashEl.style.opacity = (flash * 0.5).toFixed(3);
+    } else if (flashEl.style.opacity !== '0') {
+      flashEl.style.opacity = '0';
+    }
+
+    shakeNow(t);
+    drawFX(t, dt);
+    drawConfetti(t, dt);
+
+    requestAnimationFrame(loop);
+  }
+
+  /* ============================================================
+     7. BOOT
+     ============================================================ */
+  load();
+  /* opening the app with everything already finished shows the finished state, not the
+     celebration again — the overlay belongs to the moment the last box is ticked */
+  heavenShown = (function () { var s0 = stats(); return s0.total > 0 && s0.rem === 0; })();
+  renderList();
+  updateUI();
+
+  /* images: fade the veil only once the artwork is actually there */
+  var loaded = 0;
+  function imgReady() {
+    loaded += 1;
+    if (loaded >= 2) setTimeout(function () { veil.classList.add('done'); showHint(); }, 120);
+  }
+  function watchImg(img) {
+    if (img.complete && img.naturalWidth) { imgReady(); return; }
+    img.addEventListener('load', imgReady, { once: true });
+    img.addEventListener('error', function () {
+      img.style.display = 'none';
+      imgReady();
+    }, { once: true });
+  }
+  watchImg(bgPush);
+  watchImg(bgRun);
+  setTimeout(function () { veil.classList.add('done'); }, 6500);
+
+  /* keep the app the size of the visible area, so the keyboard never hides the input row */
+  var baseH = window.innerHeight;
+  function fitViewport() {
+    var vv = window.visualViewport;
+    var h = vv ? vv.height : window.innerHeight;
+    var w = vv ? vv.width : window.innerWidth;
+    if (!h || !w) return;
+    app.style.setProperty('--app-h', Math.round(h) + 'px');
+    if (w < 620) app.style.height = Math.round(h) + 'px';
+    else app.style.height = '';
+
+    var kb = h < baseH * 0.76;
+    app.classList.toggle('kbopen', kb);
+    if (!kb) baseH = Math.max(baseH, h);
+  }
+
+  var resizeTimer = 0;
+  function scheduleResize() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { resizeTimer = 0; fxResize(); cfResize(); }, 140);
+  }
+
+  fitViewport();
+  fxResize();
+  cfResize();
+
+  /* belt and braces for browsers without overflow:clip — the frame must never shift */
+  function pinScroll() { if (app.scrollTop) app.scrollTop = 0; }
+  app.addEventListener('scroll', pinScroll, { passive: true });
+  window.addEventListener('load', pinScroll);
+  setTimeout(pinScroll, 400);
+  setTimeout(pinScroll, 1600);
+
+  window.addEventListener('resize', function () { fitViewport(); scheduleResize(); });
+  window.addEventListener('orientationchange', function () { setTimeout(function () { fitViewport(); fxResize(); cfResize(); }, 260); });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () { fitViewport(); scheduleResize(); });
+    window.visualViewport.addEventListener('scroll', fitViewport);
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) last = 0; });
+
+  /* restore the saved scene */
+  var savedMode = storeGet(MODE_KEY);
+  if (savedMode === 'run') setMode('run', false);
+  else setMode('push', false);
+
+  requestAnimationFrame(loop);
+  window.__slothReady = true;
+
+  /* small hook so the layout can be checked without looking at pixels */
+  window.__slothState = function () {
+    var pr = document.getElementById('panel').getBoundingClientRect();
+    var ar = art.getBoundingClientRect();
+    return {
+      mode: mode,
+      stats: stats(),
+      urgency: Number(urgency.toFixed(3)),
+      arena: { x: ARENA.cx, y: ARENA.cy, rx: ARENA.rx, ry: ARENA.ry },
+      panelTop: pr.top,
+      appH: app.clientHeight,
+      appW: app.clientWidth,
+      artTransform: art.style.transform,
+      imgs: [
+        { src: bgPush.currentSrc || bgPush.src, w: bgPush.naturalWidth, h: bgPush.naturalHeight, complete: bgPush.complete },
+        { src: bgRun.currentSrc || bgRun.src, w: bgRun.naturalWidth, h: bgRun.naturalHeight, complete: bgRun.complete }
+      ],
+      heaven: heavenEl.classList.contains('on'),
+      fx: { w: fx.width, h: fx.height },
+      particles: parts.length,
+      errors: window.__slothErrors
+    };
+  };
+})();
+</script>
+</body>
+</html>
