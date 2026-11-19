@@ -20,8 +20,35 @@
 
 - 배경 두 장(`assets/sloth-hell-pixel-push-120deg.png`, `assets/sloth-hell-pixel-run-120deg-left.png`)을
   오른쪽 위 버튼 또는 배경 탭으로 바꿔 볼 수 있습니다.
+- 가운데 원형 아레나와 3개 돌기둥이 **시계방향으로 실제로 돌아갑니다.**
+  원본 일러스트를 원형으로 오려낸 회전 레이어(`assets/disc-*.webp`, 투명 PNG 폴백)를
+  아래에 깔린 원본 위에 얹고, 아레나 중심을 축으로 `rotate()`만 매 프레임 갱신합니다.
+  - 아레나 중심/반지름은 두 일러스트의 기둥 경계가 모이는 소실점을 측정해 잡았습니다
+    (원본 941×1672 기준 중심 `(490, 777)`, 반지름 `380`).
+    코드의 `ARENA_SRC` 값만 바꾸면 축과 크기를 조정할 수 있습니다.
+  - 미완료가 많을수록 빨라지고(최대 약 15.6°/s), 하나만 남으면 천천히(약 4.5°/s),
+    100% 완료하면 천국행 화면과 함께 부드럽게 멈춥니다.
+  - `prefers-reduced-motion` 에서는 흔들림·파티클 없이 아주 느리게만 돕니다.
 - 미완료가 많을수록 화면 흔들림·불티·먼지·땀방울·빨간 경고 펄스가 강해집니다.
 - 모든 할 일을 체크하면 "오늘도 천국행! MISSION SUCCESS" 화면이 뜹니다.
+
+## 회전 레이어 다시 만들기
+
+원본 일러스트가 바뀌면 회전 레이어도 다시 구워야 합니다(원형 알파 마스크, 가장자리 12px 페더링).
+
+```python
+from PIL import Image
+import numpy as np
+CX, CY, R, F = 490, 777, 380, 12
+def build(src, out_png, out_webp):
+    im = Image.open(src).convert('RGBA'); w, h = im.size
+    yy, xx = np.mgrid[0:h, 0:w]
+    d = np.hypot(xx + .5 - CX, yy + .5 - CY)
+    t = np.clip((R - d) / F, 0, 1); a = (t*t*(3-2*t)*255).round().astype(np.uint8)
+    px = np.asarray(im).copy(); px[:, :, 3] = np.minimum(px[:, :, 3], a)
+    Image.fromarray(px, 'RGBA').save(out_png, optimize=True)
+    Image.fromarray(px, 'RGBA').save(out_webp, 'WEBP', lossless=True, quality=100, method=6)
+```
 
 ## 수정 방법
 
