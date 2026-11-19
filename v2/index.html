@@ -124,9 +124,11 @@
   .app-heaven .disc img.on{filter:sepia(.30) saturate(1.12) brightness(1.16) contrast(1.02);}
 
   /* my character: 4-frame pixel sprite that keeps pushing / running.
-     It lives inside the rotating layer (same coordinates as the disc) and is
-     counter-rotated around the arena centre, so it stays on its spot on the
-     turntable, upright, while the pillars and the floor turn underneath. */
+     It lives inside the rotating layer (same coordinates as the disc), so the
+     pillars and he turn together: he orbits the arena exactly as far as the
+     pillar he is pushing does. The counter-turn is taken on his own feet
+     (transform-origin at the bottom centre, set in mapHero) so he stays upright
+     without being pulled off his spot on the disc. */
   .hero{
     position:absolute;left:0;top:0;width:0;height:0;
     background-image:url(../assets/hero-frames.png);
@@ -1063,12 +1065,27 @@ window.addEventListener('error', function (e) {
     heroEl.style.left = left.toFixed(2) + 'px';
     heroEl.style.top = top.toFixed(2) + 'px';
     heroEl.style.backgroundSize = (ww * SPRITE.frames).toFixed(2) + 'px ' + hh.toFixed(2) + 'px';
-    /* counter-rotate about the arena centre: the parent turns by +spin, this turns
-       back by the same amount, so the sprite keeps its place and stays upright */
-    heroEl.style.transformOrigin = (ARENA.cx - left).toFixed(2) + 'px ' + (ARENA.cy - by - top).toFixed(2) + 'px';
+    /* the upright correction turns on his own feet, never on the arena centre:
+       pivoting here leaves his spot in the disc layer untouched, so the turntable
+       carries him round the track together with the pillar he pushes or outruns */
+    heroEl.style.transformOrigin = (ww / 2).toFixed(2) + 'px ' + hh.toFixed(2) + 'px';
     FXFEET.x = left + ww / 2;
     FXFEET.y = top + hh + by;
+    heroTrack();
     heroShown = -1;
+  }
+
+  /* where his feet are on screen right now: the disc layer keeps him on the artwork
+     spot, and the turntable swings that spot clockwise around the arena centre by
+     `spin`. The foot dust and the debug readout follow this, not the source position. */
+  function heroTrack() {
+    var H = app.clientHeight, by = H - H * WRAP;
+    var cx = ARENA.cx, cy = ARENA.cy - by;      /* arena centre in disc-layer coords */
+    var dx = heroBox.left + heroBox.w / 2 - cx;
+    var dy = heroBox.top + heroBox.h - cy;      /* his feet line, disc-layer coords */
+    var a = (spin || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+    FXFEET.x = cx + dx * ca - dy * sa;
+    FXFEET.y = cy + dx * sa + dy * ca + by;     /* back into app coordinates */
   }
 
   function glowSprite(r, g, b) {
@@ -1359,9 +1376,11 @@ window.addEventListener('error', function (e) {
 
   /* ---------------------------------------------------------------- sprite clock */
   function heroNow(dt, urg, heaven) {
-    /* the counter-rotation is what keeps him on his spot and upright while the disc
-       turns. Remove this line and he rides the turntable instead, tipping over with it. */
+    /* he rides the turntable: the parent turns him clockwise with the pillars, and
+       this counter-turn only un-tips him about his own feet (see mapHero), so he
+       keeps his grip on the pillar instead of standing still while it goes by. */
     heroEl.style.transform = 'rotate(' + (-spin).toFixed(2) + 'deg)';
+    heroTrack();
     var heavenNow = heaven > 0.98;
     /* steps get quicker the more is still undone; the run scene is a touch faster;
        at 100% the celebration stops him mid-stride along with the turntable */
