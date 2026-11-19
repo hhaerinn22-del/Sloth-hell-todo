@@ -539,11 +539,13 @@
       <div class="disc" id="disc" aria-hidden="true">
         <picture>
           <source type="image/webp" srcset="../assets/disc-push-120deg.webp">
-          <img id="discPush" src="../assets/disc-push-120deg.png" alt="" draggable="false" decoding="async">
+          <img id="discPush" src="../assets/disc-push-120deg.png" data-png="../assets/disc-push-120deg.png"
+               alt="" draggable="false" decoding="async">
         </picture>
         <picture>
           <source type="image/webp" srcset="../assets/disc-run-120deg-left.webp">
-          <img id="discRun" src="../assets/disc-run-120deg-left.png" alt="" draggable="false" decoding="async">
+          <img id="discRun" src="../assets/disc-run-120deg-left.png" data-png="../assets/disc-run-120deg-left.png"
+               alt="" draggable="false" decoding="async">
         </picture>
       </div>
     </div>
@@ -720,6 +722,21 @@ window.addEventListener('error', function (e) {
   var discEl = document.getElementById('disc');
   var discPush = document.getElementById('discPush');
   var discRun = document.getElementById('discRun');
+
+  /* if the webp turntable layer cannot be fetched, drop the <source> and use the png copy */
+  function discFallback(img) {
+    if (img.getAttribute('data-fell-back')) return;
+    img.setAttribute('data-fell-back', '1');
+    var pic = img.parentNode;
+    if (pic && pic.tagName === 'PICTURE') {
+      var srcs = pic.getElementsByTagName('source');
+      while (srcs.length) pic.removeChild(srcs[0]);
+    }
+    var png = img.getAttribute('data-png');
+    if (png) img.src = png;
+  }
+  discPush.addEventListener('error', function () { discFallback(discPush); });
+  discRun.addEventListener('error', function () { discFallback(discRun); });
 
   var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9.2 16.8 4 11.6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
