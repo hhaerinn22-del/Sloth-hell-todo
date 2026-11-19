@@ -1415,9 +1415,7 @@ window.addEventListener('error', function (e) {
         speed: Number(spinV.toFixed(3)),
         target: Number(spinTargetSpeed(urgency, s.total > 0 && s.rem === 0).toFixed(3)),
         transform: discEl.style.transform,
-        left: discEl.style.left,
-        top: discEl.style.top,
-        size: discEl.style.width,
+        origin: discEl.style.transformOrigin,
         r: Number(ARENA.r.toFixed(2)),
         src: { x: ARENA_SRC.cx, y: ARENA_SRC.cy, r: ARENA_SRC.r }
       },
